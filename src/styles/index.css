@@ -1,5 +1,21 @@
+/* stylelint-disable */
+/* tailwindcss directives */
 @import "tailwindcss";
 
 body {
   @apply bg-gray-50 text-gray-900 font-sans;
+}
+
+@theme {
+  --color-bg-dark: #1a1a1a;
+  --color-text-dark: #f5f5f5;
+}
+
+html.dark {
+  background-color: var(--color-bg-dark);
+  color: var(--color-text-dark);
+}
+
+html {
+  transition: background-color 0.3s, color 0.3s;
 }

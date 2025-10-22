@@ -1,5 +1,5 @@
+// src/features/reportes/pages/ReportesPage.tsx
 import { useState, useEffect } from "react";
-import { MainLayout } from "../../../components/layout/MainLayout";
 import { Card } from "../../../components/ui/Card";
 import { Button } from "../../../components/ui/Button";
 import { Table } from "../../../components/ui/Table";
@@ -23,8 +23,10 @@ export default function ReportesPage() {
   }, []);
 
   return (
-    <MainLayout>
-      <h1 className="text-3xl font-bold text-blue-700 mb-4">📊 Reportes</h1>
+    <div>
+      <h1 className="text-3xl font-bold text-blue-700 mb-4 dark:text-blue-400">
+        📊 Reportes
+      </h1>
 
       <Card>
         <div className="flex justify-between items-center mb-4">
@@ -42,6 +44,6 @@ export default function ReportesPage() {
           ]}
         />
       </Card>
-    </MainLayout>
+    </div>
   );
 }
