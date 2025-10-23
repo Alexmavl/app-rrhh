@@ -1,6 +1,7 @@
-// src/routes/AppRouter.tsx
 import { Routes, Route, Navigate, Outlet } from "react-router-dom";
 import EmpleadosPage from "../features/empleados/pages/EmpleadosPage";
+import DepartamentosPage from "../features/departamentos/pages/DepartamentosPage";
+import PuestosPage from "../features/puestos/pages/PuestosPage";
 import ReportesPage from "../features/reportes/pages/ReportesPage";
 import NominaPage from "../features/nomina/pages/NominaPage";
 import LoginPage from "../features/auth/pages/LoginPage";
@@ -24,6 +25,8 @@ export default function AppRouter() {
         >
           <Route path="/" element={<Navigate to="/empleados" />} />
           <Route path="/empleados" element={<EmpleadosPage />} />
+          <Route path="/departamentos" element={<DepartamentosPage />} />
+          <Route path="/puestos" element={<PuestosPage />} />
           <Route path="/nomina" element={<NominaPage />} />
           <Route path="/reportes" element={<ReportesPage />} />
         </Route>

@@ -1,7 +1,7 @@
 import axios from "axios";
 import { API_URL } from "./config";
 
-// 🧩 Instancia principal del cliente HTTP
+//  Instancia principal del cliente HTTP
 export const api = axios.create({
   baseURL: API_URL,
   headers: {
@@ -9,7 +9,7 @@ export const api = axios.create({
   },
 });
 
-// 🧠 Interceptor para adjuntar token si existe
+//  Interceptor para adjuntar token si existe
 api.interceptors.request.use(
   (config) => {
     const token = sessionStorage.getItem("token");

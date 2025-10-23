@@ -1,10 +1,13 @@
-// src/features/empleados/components/EmpleadoForm.tsx
 import { useForm } from "react-hook-form";
 import { z } from "zod";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { Input } from "../../../components/ui/Input";
-import { Button } from "../../../components/ui/Button";
+import { useQuery } from "@tanstack/react-query";
 import { empleadosService } from "../../../services/empleados.service";
+import { departamentosService } from "../../../services/departamentos.service";
+import { puestosService } from "../../../services/puestos.service";
+import { Button } from "../../../components/ui/Button";
+import { Input } from "../../../components/ui/Input";
+import { swalConfig } from "../../../utils/swalConfig";
 import type { Empleado } from "../../../models/empleado.model";
 
 const schema = z.object({
@@ -13,75 +16,168 @@ const schema = z.object({
   email: z.string().email("Correo inválido"),
   telefono: z.string().optional(),
   direccion: z.string().optional(),
-  idDepartamento: z.coerce.number().int().min(1, "Seleccione un departamento"),
-  idPuesto: z.coerce.number().int().min(1, "Seleccione un puesto"),
+  idDepartamento: z.number().min(1, "Seleccione un departamento"),
+  idPuesto: z.number().min(1, "Seleccione un puesto"),
 });
 
 type FormData = z.infer<typeof schema>;
 
 interface Props {
   empleado?: Empleado | null;
-  onClose: () => void;
   onSuccess: () => void;
 }
 
-export function EmpleadoForm({ empleado, onClose, onSuccess }: Props) {
+export function EmpleadoForm({ empleado, onSuccess }: Props) {
   const {
     register,
     handleSubmit,
     formState: { errors, isSubmitting },
-    reset,
   } = useForm<FormData>({
     resolver: zodResolver(schema),
     defaultValues: empleado || {},
   });
 
+  // 🔹 Cargar departamentos y puestos
+  const { data: departamentos = [] } = useQuery({
+    queryKey: ["departamentos"],
+    queryFn: departamentosService.listar,
+  });
+
+  const { data: puestos = [] } = useQuery({
+    queryKey: ["puestos"],
+    queryFn: puestosService.listar,
+  });
+
+  // 💾 Crear o editar empleado
   const onSubmit = async (data: FormData) => {
     try {
       if (empleado) {
         await empleadosService.editar(empleado.id, data);
-        alert("Empleado actualizado correctamente");
+        await swalConfig.fire({
+          icon: "success",
+          title: "Empleado actualizado",
+          text: "Los datos del empleado se modificaron correctamente.",
+        });
       } else {
-        await empleadosService.crear(data);
-        alert("Empleado creado correctamente");
+        await empleadosService.crear({
+          ...data,
+          estadoLaboral: "Activo",
+        });
+        await swalConfig.fire({
+          icon: "success",
+          title: "Empleado creado",
+          text: "El nuevo empleado fue registrado con éxito.",
+        });
       }
-      reset();
       onSuccess();
     } catch (err: any) {
-      alert(err.response?.data?.message || "Error al guardar empleado");
+      await swalConfig.fire({
+        icon: "error",
+        title: "Error",
+        text:
+          err.response?.data?.message ||
+          "Ocurrió un error al guardar el empleado.",
+      });
     }
   };
 
   return (
-    <form onSubmit={handleSubmit(onSubmit)} className="flex flex-col gap-3">
-      <Input label="Nombres" {...register("nombres")} />
-      {errors.nombres && <p className="text-red-600 text-sm">{errors.nombres.message}</p>}
-
-      <Input label="Apellidos" {...register("apellidos")} />
-      {errors.apellidos && <p className="text-red-600 text-sm">{errors.apellidos.message}</p>}
-
-      <Input label="Correo electrónico" type="email" {...register("email")} />
-      {errors.email && <p className="text-red-600 text-sm">{errors.email.message}</p>}
-
+    <form onSubmit={handleSubmit(onSubmit)} className="space-y-3">
+      <Input
+        label="Nombres"
+        {...register("nombres")}
+        error={errors.nombres?.message}
+      />
+      <Input
+        label="Apellidos"
+        {...register("apellidos")}
+        error={errors.apellidos?.message}
+      />
+      <Input
+        label="Correo"
+        type="email"
+        {...register("email")}
+        error={errors.email?.message}
+      />
       <Input label="Teléfono" {...register("telefono")} />
       <Input label="Dirección" {...register("direccion")} />
 
-      <Input label="ID Departamento" type="number" {...register("idDepartamento")} />
-      {errors.idDepartamento && (
-        <p className="text-red-600 text-sm">{errors.idDepartamento.message}</p>
-      )}
+      {/* 🔽 Select de departamentos */}
+      <div>
+        <label className="block text-sm font-medium text-gray-700 mb-1">
+          Departamento
+        </label>
+        <select
+          {...register("idDepartamento", { valueAsNumber: true })}
+          className="w-full rounded-lg px-3 py-2 border border-gray-300 focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none transition"
+        >
+          <option value="">Seleccione un departamento</option>
+          {departamentos.map((dep) => (
+            <option key={dep.id} value={dep.id}>
+              {dep.nombre}
+            </option>
+          ))}
+        </select>
+        {errors.idDepartamento && (
+          <p className="text-red-500 text-sm mt-1">
+            {errors.idDepartamento.message}
+          </p>
+        )}
+      </div>
 
-      <Input label="ID Puesto" type="number" {...register("idPuesto")} />
-      {errors.idPuesto && (
-        <p className="text-red-600 text-sm">{errors.idPuesto.message}</p>
-      )}
+      {/* 🔽 Select de puestos */}
+      <div>
+        <label className="block text-sm font-medium text-gray-700 mb-1">
+          Puesto
+        </label>
+        <select
+          {...register("idPuesto", { valueAsNumber: true })}
+          className="w-full rounded-lg px-3 py-2 border border-gray-300 focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none transition"
+        >
+          <option value="">Seleccione un puesto</option>
+          {puestos.map((p) => (
+            <option key={p.id} value={p.id}>
+              {p.nombre} — Q{p.salarioBase}
+            </option>
+          ))}
+        </select>
+        {errors.idPuesto && (
+          <p className="text-red-500 text-sm mt-1">
+            {errors.idPuesto.message}
+          </p>
+        )}
+      </div>
 
-      <div className="flex justify-end gap-2 mt-4">
-        <Button type="button" variant="secondary" onClick={onClose}>
-          Cancelar
-        </Button>
+      <div className="flex justify-end pt-2">
         <Button type="submit" disabled={isSubmitting}>
-          {empleado ? "Actualizar" : "Guardar"}
+          {isSubmitting ? (
+            <>
+              <svg
+                className="animate-spin h-4 w-4 mr-2 text-white"
+                viewBox="0 0 24 24"
+              >
+                <circle
+                  className="opacity-25"
+                  cx="12"
+                  cy="12"
+                  r="10"
+                  stroke="currentColor"
+                  strokeWidth="4"
+                  fill="none"
+                />
+                <path
+                  className="opacity-75"
+                  fill="currentColor"
+                  d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
+                />
+              </svg>
+              Guardando...
+            </>
+          ) : empleado ? (
+            "Guardar cambios"
+          ) : (
+            "Crear empleado"
+          )}
         </Button>
       </div>
     </form>

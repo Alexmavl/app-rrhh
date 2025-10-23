@@ -1,21 +1,64 @@
-/* stylelint-disable */
-/* tailwindcss directives */
+
 @import "tailwindcss";
 
+/*  Tema base claro */
+:root {
+  --color-brand-light: #2563eb;
+  --color-surface-light: #f9fafb;
+  --color-border-light: #e5e7eb;
+  --color-text-light: #111827;
+  --color-success-light: #16a34a;
+  --color-danger-light: #dc2626;
+}
+
+/*  Cuerpo base */
 body {
-  @apply bg-gray-50 text-gray-900 font-sans;
+  @apply font-sans antialiased;
+  background-color: var(--color-surface-light);
+  color: var(--color-text-light);
+  min-height: 100vh;
+  transition: background-color 0.3s ease, color 0.3s ease;
 }
 
-@theme {
-  --color-bg-dark: #1a1a1a;
-  --color-text-dark: #f5f5f5;
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
 }
 
-html.dark {
-  background-color: var(--color-bg-dark);
-  color: var(--color-text-dark);
+@keyframes scaleIn {
+  from {
+    opacity: 0;
+    transform: scale(0.95);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
 }
 
-html {
-  transition: background-color 0.3s, color 0.3s;
+/* Tailwind utilities personalizadas */
+.animate-fadeIn {
+  animation: fadeIn 0.2s ease-out forwards;
+}
+
+.animate-scaleIn {
+  animation: scaleIn 0.25s ease-out forwards;
+}
+
+
+@keyframes spin-slow {
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
+  }
+}
+.animate-spin-slow {
+  animation: spin-slow 2s linear infinite;
 }
