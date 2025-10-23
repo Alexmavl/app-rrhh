@@ -24,6 +24,7 @@ export default function LoginPage() {
     handleSubmit,
     formState: { errors, isSubmitting },
   } = useForm<LoginInput>();
+
   const { setUser } = useContext(AuthContext)!;
   const navigate = useNavigate();
 
@@ -31,11 +32,17 @@ export default function LoginPage() {
     try {
       const res = (await login(data.email, data.password)) as LoginResponse;
 
+      // 🔐 Guardar token y usuario
       sessionStorage.setItem("token", res.token);
       sessionStorage.setItem("usuario", JSON.stringify(res));
+
+      // ✅ Actualizar contexto
       setUser(res);
 
-      navigate("/empleados", { replace: true });
+      // 🕒 Esperar a que el contexto se sincronice antes de redirigir
+      setTimeout(() => {
+        navigate("/inicio", { replace: true });
+      }, 100);
     } catch (error: any) {
       alert("❌ Credenciales inválidas o error de conexión.");
     }
@@ -147,7 +154,8 @@ export default function LoginPage() {
 
         {/* Footer */}
         <p className="text-center text-sm text-gray-500 mt-6">
-          © {new Date().getFullYear()} Recursos Humanos · Todos los derechos reservados
+          © {new Date().getFullYear()} Recursos Humanos · Todos los derechos
+          reservados
         </p>
       </div>
     </div>

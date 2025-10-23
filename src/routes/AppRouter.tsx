@@ -5,6 +5,7 @@ import PuestosPage from "../features/puestos/pages/PuestosPage";
 import ReportesPage from "../features/reportes/pages/ReportesPage";
 import NominaPage from "../features/nomina/pages/NominaPage";
 import LoginPage from "../features/auth/pages/LoginPage";
+import InicioPage from "../features/inicio/pages/InicioPage"; // 👈 Nuevo import
 import PrivateRoute from "./PrivateRoute";
 import { MainLayout } from "../components/layout/MainLayout";
 
@@ -12,7 +13,7 @@ export default function AppRouter() {
   return (
     <Routes>
       <Route element={<MainLayout />}>
-        {/* 🟢 Login (sin Navbar/Sidebar gracias a MainLayout) */}
+        {/* 🟢 Página de login */}
         <Route path="/login" element={<LoginPage />} />
 
         {/* 🔒 Rutas protegidas */}
@@ -23,7 +24,13 @@ export default function AppRouter() {
             </PrivateRoute>
           }
         >
-          <Route path="/" element={<Navigate to="/empleados" />} />
+          {/* 👇 Redirección por defecto al Inicio */}
+          <Route path="/" element={<Navigate to="/inicio" replace />} />
+
+          {/* 📊 Página de inicio / dashboard */}
+          <Route path="/inicio" element={<InicioPage />} />
+
+          {/* 👥 Módulos principales */}
           <Route path="/empleados" element={<EmpleadosPage />} />
           <Route path="/departamentos" element={<DepartamentosPage />} />
           <Route path="/puestos" element={<PuestosPage />} />
@@ -32,7 +39,7 @@ export default function AppRouter() {
         </Route>
       </Route>
 
-      {/* ❌ 404 */}
+      {/* ❌ Página 404 */}
       <Route
         path="*"
         element={
