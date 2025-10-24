@@ -1,166 +1,357 @@
-import React from "react";
-import { Modal } from "../../../components/ui/Modal";
+import React, { useState, useMemo, useEffect } from "react";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { empleadosService } from "../../../services/empleados.service";
 import type { Empleado } from "../../../models/empleado.model";
-import {
-  Mail,
-  Phone,
-  MapPin,
-  CalendarClock,
-  Briefcase,
-  Building2,
-  User2,
-  ShieldCheck,
+import { Table } from "../../../components/ui/Table";
+import { Button } from "../../../components/ui/Button";
+import { Modal } from "../../../components/ui/Modal";
+import { LoadingSpinner } from "../../../shared/LoadingSpinner";
+import { EmpleadoForm } from "../components/EmpleadoForm";
+import { EmpleadoPerfilModal } from "../components/EmpleadoPerfilModal";
+import { EmpleadosFormacionModal } from "../components/EmpleadosFormacionModal";
+import { Input } from "../../../components/ui/Input";
+import { ToggleSwitch } from "../../../components/ui/ToggleSwitch";
+import { Card } from "../../../components/ui/Card";
+import { swalConfirm, swalError, swalSuccess } from "../../../utils/swalConfig";
+import { 
+  Plus, 
+  Search, 
+  User, 
+  GraduationCap, 
+  Edit, 
+  ChevronLeft, 
+  ChevronRight,
+  Users,
 } from "lucide-react";
 
-interface Props {
-  show: boolean;
-  onClose: () => void;
-  empleado: Empleado;
-  onVerExpediente?: (empleadoId: number) => void; // ✅ callback al modal de formación
-}
+export default function EmpleadosPage() {
+  const [showForm, setShowForm] = useState(false);
+  const [showPerfil, setShowPerfil] = useState(false);
+  const [showFormacion, setShowFormacion] = useState(false);
+  const [selected, setSelected] = useState<Empleado | null>(null);
+  const [search, setSearch] = useState("");
+  const [filter, setFilter] = useState<"todos" | "activos" | "inactivos">("todos");
+  const [page, setPage] = useState(1);
+  const itemsPerPage = 10;
 
-export const EmpleadoPerfilModal: React.FC<Props> = ({
-  show,
-  onClose,
-  empleado,
-  onVerExpediente,
-}) => {
-  if (!empleado) return null;
+  const queryClient = useQueryClient();
+
+  const {
+    data: empleados = [],
+    isLoading,
+    isError,
+  } = useQuery<Empleado[]>({
+    queryKey: ["empleados"],
+    queryFn: empleadosService.listar,
+  });
+
+  const toggleActivo = useMutation({
+    mutationFn: (id: number) => empleadosService.toggleActivo(id),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["empleados"] });
+      swalSuccess("Estado actualizado", "El estado del empleado se cambió correctamente");
+    },
+    onError: async (err: any) => {
+      await swalError(
+        "Error",
+        err.response?.data?.message || "No se pudo cambiar el estado del empleado."
+      );
+    },
+  });
+
+  const handleEdit = (empleado: Empleado) => {
+    setSelected(empleado);
+    setShowForm(true);
+  };
+
+  const handlePerfil = (empleado: Empleado) => {
+    setSelected(empleado);
+    setShowPerfil(true);
+  };
+
+  const handleFormacion = (empleado: Empleado) => {
+    setSelected(empleado);
+    setShowFormacion(true);
+  };
+
+  const handleCloseModals = () => {
+    setSelected(null);
+    setShowForm(false);
+    setShowPerfil(false);
+    setShowFormacion(false);
+    queryClient.invalidateQueries({ queryKey: ["empleados"] });
+  };
+
+  const empleadosFiltrados = useMemo(() => {
+    return empleados.filter((emp) => {
+      if (filter === "activos") return emp.activo;
+      if (filter === "inactivos") return !emp.activo;
+      const query = search.toLowerCase();
+      return (
+        emp.nombres.toLowerCase().includes(query) ||
+        emp.apellidos.toLowerCase().includes(query) ||
+        emp.email.toLowerCase().includes(query) ||
+        emp.dpi.toLowerCase().includes(query)
+      );
+    });
+  }, [empleados, search, filter]);
+
+  const totalPages = Math.ceil(empleadosFiltrados.length / itemsPerPage);
+  const paginatedData = empleadosFiltrados.slice(
+    (page - 1) * itemsPerPage,
+    page * itemsPerPage
+  );
+
+  useEffect(() => setPage(1), [search, filter]);
+
+  if (isLoading) return <LoadingSpinner fullScreen text="Cargando empleados..." />;
+  
+  if (isError) {
+    return (
+      <Card className="text-center py-8">
+        <p className="text-red-500 mb-4">Error al cargar empleados.</p>
+        <Button onClick={() => window.location.reload()}>
+          Reintentar
+        </Button>
+      </Card>
+    );
+  }
+
+  const columns: { 
+    key: keyof Empleado | "index" | "codigo" | "acciones"; 
+    label: string;
+    width?: string;
+    align?: "left" | "center" | "right";
+  }[] = [
+    { key: "index", label: "#", width: "60px", align: "center" },
+    { key: "codigo", label: "Código", width: "120px" },
+    { key: "nombres", label: "Nombres" },
+    { key: "apellidos", label: "Apellidos" },
+    { key: "nombreDepartamento", label: "Departamento" },
+    { key: "nombrePuesto", label: "Puesto" },
+    { key: "email", label: "Correo" },
+    { key: "activo", label: "Estado", width: "100px", align: "center" },
+    { key: "acciones", label: "Acciones", width: "300px", align: "center" },
+  ];
+
+  const tableData = paginatedData.map((emp, i) => ({
+    ...emp,
+    index: (page - 1) * itemsPerPage + (i + 1),
+    codigo: `EMP-${String(emp.id).padStart(4, "0")}`,
+    activo: (
+      <ToggleSwitch
+        checked={emp.activo}
+        color={emp.activo ? "success" : "danger"}
+        size="sm"
+        onChange={async () => {
+          const result = await swalConfirm(
+            emp.activo ? "¿Desactivar empleado?" : "¿Activar empleado?",
+            `¿Deseas ${emp.activo ? "desactivar" : "activar"} a ${emp.nombres}?`,
+            emp.activo ? "Sí, desactivar" : "Sí, activar",
+            "Cancelar"
+          );
+          if (result.isConfirmed) toggleActivo.mutate(emp.id);
+        }}
+      />
+    ),
+    acciones: (
+      <div className="flex gap-2 justify-center flex-wrap">
+        <Button
+          variant="primary"
+          size="sm"
+          icon={<User size={14} />}
+          onClick={() => handlePerfil(emp)}
+        >
+          Perfil
+        </Button>
+        <Button
+          variant="info"
+          size="sm"
+          icon={<GraduationCap size={14} />}
+          onClick={() => handleFormacion(emp)}
+        >
+          Formación
+        </Button>
+        <Button
+          variant="warning"
+          size="sm"
+          icon={<Edit size={14} />}
+          onClick={() => handleEdit(emp)}
+        >
+          Editar
+        </Button>
+      </div>
+    ),
+  }));
 
   return (
-    <Modal show={show} onClose={onClose} title="Perfil del Empleado">
-      {/* 🔹 Header con avatar e info básica */}
-      <div className="flex flex-col md:flex-row items-center md:items-start gap-6 pb-6 border-b border-gray-200">
-        {/* Avatar circular con iniciales */}
-        <div className="w-28 h-28 rounded-full bg-gradient-to-br from-blue-600 to-blue-400 flex items-center justify-center text-white text-3xl font-bold shadow-md">
-          {empleado.nombres.charAt(0)}
-          {empleado.apellidos.charAt(0)}
-        </div>
-
-        <div className="flex-1 text-center md:text-left">
-          <h2 className="text-2xl font-bold text-gray-900">
-            {empleado.nombres} {empleado.apellidos}
-          </h2>
-
-          <p className="text-gray-500 flex items-center justify-center md:justify-start gap-2 mt-1">
-            <Briefcase size={18} /> {empleado.nombrePuesto || "Sin puesto asignado"}
-          </p>
-
-          <p className="text-gray-500 flex items-center justify-center md:justify-start gap-2">
-            <Building2 size={18} /> {empleado.nombreDepartamento || "Sin departamento"}
-          </p>
-
-          <div
-            className={`mt-3 inline-block px-4 py-1.5 rounded-full text-sm font-medium text-white ${
-              empleado.activo ? "bg-green-600" : "bg-gray-500"
-            }`}
+    <div className="space-y-6 animate-fadeIn">
+      {/* Header */}
+      <Card>
+        <div className="flex justify-between items-center flex-wrap gap-4">
+          <div className="flex items-center gap-3">
+            <div className="p-2 rounded-lg" style={{ backgroundColor: "#023778" }}>
+              <Users size={24} className="text-white" />
+            </div>
+            <div>
+              <h1 className="text-2xl font-bold text-gray-900">Gestión de Empleados</h1>
+              <p className="text-sm text-gray-600">
+                {empleadosFiltrados.length} empleado{empleadosFiltrados.length !== 1 ? "s" : ""} encontrado{empleadosFiltrados.length !== 1 ? "s" : ""}
+              </p>
+            </div>
+          </div>
+          <Button 
+            icon={<Plus size={18} />}
+            onClick={() => setShowForm(true)}
           >
-            {empleado.estadoLaboral}
+            Nuevo empleado
+          </Button>
+        </div>
+      </Card>
+
+      {/* Búsqueda y filtros */}
+      <Card>
+        <div className="flex flex-col md:flex-row gap-4">
+          <div className="flex-1">
+            <Input
+              placeholder="Buscar por nombre, apellido, email o DPI..."
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              leftIcon={<Search size={18} />}
+            />
+          </div>
+          <div className="flex gap-2">
+            <Button
+              variant={filter === "todos" ? "primary" : "secondary"}
+              size="md"
+              onClick={() => setFilter("todos")}
+            >
+              Todos
+            </Button>
+            <Button
+              variant={filter === "activos" ? "primary" : "secondary"}
+              size="md"
+              onClick={() => setFilter("activos")}
+            >
+              Activos
+            </Button>
+            <Button
+              variant={filter === "inactivos" ? "primary" : "secondary"}
+              size="md"
+              onClick={() => setFilter("inactivos")}
+            >
+              Inactivos
+            </Button>
           </div>
         </div>
-      </div>
+      </Card>
 
-      {/* 📊 Información personal */}
-      <div className="grid md:grid-cols-2 gap-6 mt-6">
-        <div className="bg-gray-50 rounded-xl p-5 border border-gray-200 shadow-sm">
-          <h3 className="text-lg font-semibold mb-3 flex items-center gap-2 text-blue-700">
-            <User2 size={18} /> Información Personal
-          </h3>
-          <ul className="space-y-2 text-gray-700 text-sm">
-            <li>
-              <strong>DPI:</strong> {empleado.dpi}
-            </li>
-            <li>
-              <strong>Género:</strong>{" "}
-              {empleado.genero === "M" ? "Masculino" : "Femenino"}
-            </li>
-            <li>
-              <strong>Estado Civil:</strong> {empleado.estadoCivil}
-            </li>
-            <li className="flex items-center gap-2 text-gray-600 mt-2">
-              <CalendarClock size={16} />
-              Fecha de Ingreso:{" "}
-              <span className="font-medium text-gray-800">
-                {new Date(empleado.fechaIngreso).toLocaleDateString("es-GT")}
-              </span>
-            </li>
-          </ul>
-        </div>
+      {/* Tabla */}
+      {empleadosFiltrados.length > 0 ? (
+        <Card padding="none">
+          <Table 
+            data={tableData} 
+            columns={columns}
+            striped
+            hover
+          />
 
-        {/* ☎️ Contacto */}
-        <div className="bg-gray-50 rounded-xl p-5 border border-gray-200 shadow-sm">
-          <h3 className="text-lg font-semibold mb-3 flex items-center gap-2 text-blue-700">
-            <ShieldCheck size={18} /> Contacto
-          </h3>
-          <ul className="space-y-2 text-gray-700 text-sm">
-            <li className="flex items-center gap-2">
-              <Mail size={16} className="text-gray-500" />
-              <span>{empleado.email}</span>
-            </li>
-            {empleado.telefono && (
-              <li className="flex items-center gap-2">
-                <Phone size={16} className="text-gray-500" />
-                <span>{empleado.telefono}</span>
-              </li>
+          {/* Paginación */}
+          <div className="px-6 py-4 border-t border-gray-200 flex flex-col sm:flex-row justify-between items-center gap-4">
+            <p className="text-sm text-gray-600">
+              Mostrando {(page - 1) * itemsPerPage + 1} a{" "}
+              {Math.min(page * itemsPerPage, empleadosFiltrados.length)} de{" "}
+              {empleadosFiltrados.length} empleados
+            </p>
+            <div className="flex gap-2">
+              <Button
+                variant="secondary"
+                size="sm"
+                disabled={page === 1}
+                onClick={() => setPage((prev) => Math.max(prev - 1, 1))}
+                icon={<ChevronLeft size={16} />}
+              >
+                Anterior
+              </Button>
+              <div className="flex items-center gap-2 px-3">
+                <span className="text-sm text-gray-600">
+                  Página {page} de {totalPages || 1}
+                </span>
+              </div>
+              <Button
+                variant="secondary"
+                size="sm"
+                disabled={page === totalPages || totalPages === 0}
+                onClick={() => setPage((prev) => Math.min(prev + 1, totalPages))}
+                icon={<ChevronRight size={16} />}
+                iconPosition="right"
+              >
+                Siguiente
+              </Button>
+            </div>
+          </div>
+        </Card>
+      ) : (
+        <Card className="text-center py-12">
+          <div className="flex flex-col items-center gap-3">
+            <div className="p-4 bg-gray-100 rounded-full">
+              <Users size={48} className="text-gray-400" />
+            </div>
+            <div>
+              <h3 className="text-lg font-semibold text-gray-900">
+                No se encontraron empleados
+              </h3>
+              <p className="text-sm text-gray-500 mt-1">
+                {search 
+                  ? "Intenta ajustar los filtros de búsqueda" 
+                  : "Comienza agregando tu primer empleado"}
+              </p>
+            </div>
+            {!search && (
+              <Button 
+                icon={<Plus size={18} />}
+                onClick={() => setShowForm(true)}
+                className="mt-2"
+              >
+                Agregar empleado
+              </Button>
             )}
-            {empleado.direccion && (
-              <li className="flex items-center gap-2">
-                <MapPin size={16} className="text-gray-500" />
-                <span>{empleado.direccion}</span>
-              </li>
-            )}
-          </ul>
-        </div>
-      </div>
+          </div>
+        </Card>
+      )}
 
-      {/* 💼 Información laboral */}
-      <div className="bg-gray-50 rounded-xl p-5 border border-gray-200 shadow-sm mt-6">
-        <h3 className="text-lg font-semibold mb-3 flex items-center gap-2 text-blue-700">
-          <Briefcase size={18} /> Información Laboral
-        </h3>
-        <ul className="grid sm:grid-cols-2 gap-y-2 text-gray-700 text-sm">
-          <li>
-            <strong>Departamento:</strong> {empleado.nombreDepartamento || "-"}
-          </li>
-          <li>
-            <strong>Puesto:</strong> {empleado.nombrePuesto || "-"}
-          </li>
-          <li>
-            <strong>Salario Base:</strong>{" "}
-            {empleado.salarioBase ? `Q${empleado.salarioBase.toFixed(2)}` : "-"}
-          </li>
-          <li>
-            <strong>Estado:</strong>{" "}
-            <span
-              className={`font-medium ${
-                empleado.activo ? "text-green-600" : "text-gray-400"
-              }`}
-            >
-              {empleado.activo ? "Activo" : "Inactivo"}
-            </span>
-          </li>
-        </ul>
-      </div>
+      {/* Modal Formulario de Empleado */}
+      <Modal
+        show={showForm}
+        title={selected ? "Editar Empleado" : "Nuevo Empleado"}
+        onClose={handleCloseModals}
+        size="lg"
+      >
+        <EmpleadoForm empleado={selected} onSuccess={handleCloseModals} />
+      </Modal>
 
-      {/* 🔚 Footer con dos botones */}
-      <div className="flex flex-col sm:flex-row justify-end gap-3 pt-6 mt-6 border-t border-gray-200">
-        <button
-          onClick={onClose}
-          className="px-5 py-2.5 bg-gray-200 text-gray-800 rounded-lg hover:bg-gray-300 transition font-medium shadow-sm"
-        >
-          Cerrar
-        </button>
-
-        <button
-          onClick={() => {
-            onClose();
-            if (onVerExpediente) onVerExpediente(empleado.id);
+      {/* Modal Perfil */}
+      {selected && (
+        <EmpleadoPerfilModal
+          show={showPerfil}
+          onClose={handleCloseModals}
+          empleado={selected}
+          onVerExpediente={(empleadoId) => {
+            setShowPerfil(false);
+            setSelected(selected);
+            setShowFormacion(true);
           }}
-          className="px-5 py-2.5 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition font-medium shadow-sm flex items-center gap-2"
-        >
-          📂 Ver Expediente
-        </button>
-      </div>
-    </Modal>
+        />
+      )}
+
+      {/* Modal Formación / Documentos */}
+      {selected && (
+        <EmpleadosFormacionModal
+          show={showFormacion}
+          onClose={handleCloseModals}
+          empleadoId={selected.id}
+        />
+      )}
+    </div>
   );
-};
+}
