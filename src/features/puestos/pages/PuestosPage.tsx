@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from "react";
+import React, { useState, useMemo, useEffect } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { puestosService } from "../../../services/puestos.service";
 import type { Puesto } from "../../../services/puestos.service";
@@ -17,28 +17,29 @@ export default function PuestosPage() {
   const [search, setSearch] = useState("");
   const [page, setPage] = useState(1);
   const itemsPerPage = 8;
-
   const queryClient = useQueryClient();
 
-  /** 🔹 Cargar puestos */
+  // Cargar puestos
   const { data: puestos = [], isLoading, isError } = useQuery({
     queryKey: ["puestos"],
     queryFn: puestosService.listar,
   });
 
-  /** 💾 Crear / Editar */
+  // Crear o editar
   const guardar = useMutation({
     mutationFn: async () => {
-      if (selected) {
-        await puestosService.editar(selected.id, form);
-      } else {
-        await puestosService.crear(form);
-      }
+      const payload = {
+        nombre: form.nombre.trim(),
+        descripcion: form.descripcion.trim(),
+        salarioBase: Number(form.salarioBase),
+      };
+      if (selected) await puestosService.editar(selected.id, payload);
+      else await puestosService.crear(payload);
     },
     onSuccess: async () => {
       await swalConfig.fire({
         icon: "success",
-        title: "¡Operación exitosa!",
+        title: "Operación exitosa",
         text: selected
           ? "El puesto fue actualizado correctamente."
           : "El nuevo puesto fue creado con éxito.",
@@ -52,52 +53,81 @@ export default function PuestosPage() {
       await swalConfig.fire({
         icon: "error",
         title: "Error",
-        text:
-          err.response?.data?.message ||
-          "Ocurrió un error al guardar el puesto.",
+        text: err.response?.data?.message || "Ocurrió un error al guardar el puesto.",
       });
     },
   });
-/** 🔁 Activar/Inactivar (toggle con validación de empleados activos) */
+
+  // Activar / Inactivar
+  // Activar / Inactivar puesto (con confirmación y validación de empleados activos)
 const toggleActivo = useMutation({
-  mutationFn: (id: number) => puestosService.toggleActivo(id),
+  mutationFn: async (puesto: Puesto) => {
+    const accion = puesto.activo ? "desactivar" : "activar";
+    const result = await swalConfig.fire({
+      title: `¿Estás seguro de ${accion} este puesto?`,
+      text: puesto.activo
+        ? "Si lo desactivas, los empleados asociados podrían verse afectados."
+        : "El puesto será reactivado y podrá asignarse a empleados nuevamente.",
+      icon: "warning",
+      showCancelButton: true,
+      confirmButtonText: `Sí, ${accion}`,
+      cancelButtonText: "Cancelar",
+      confirmButtonColor: puesto.activo ? "#d33" : "#3085d6",
+    });
+
+    if (!result.isConfirmed) return null; //  Usuario canceló
+    return await puestosService.toggleActivo(puesto.id);
+  },
   onSuccess: async (res) => {
+    if (!res) return; // No hubo confirmación
+
     await swalConfig.fire({
       icon: res?.nuevoEstado ? "success" : "info",
       title: "Estado actualizado",
       text: res?.mensaje || "El estado del puesto fue cambiado correctamente.",
       confirmButtonText: "Entendido",
     });
+
     queryClient.invalidateQueries({ queryKey: ["puestos"] });
   },
   onError: async (err: any) => {
-    const status = err.response?.status;
-    const message =
-      err.response?.data?.message ||
-      "Error al cambiar el estado del puesto.";
+  // 👀 Mostrar en consola para inspección y debugging
+  console.error("Error toggleActivo:", err.response?.data);
 
-    // 🧩 Detectar casos de conflicto lógico (status 409)
-    if (status === 409 || message.includes("empleados activos")) {
-      await swalConfig.fire({
-        icon: "warning",
-        title: "Puesto con empleados activos",
-        text: message,
-        confirmButtonText: "OK",
-        confirmButtonColor: "#facc15", // amarillo
-      });
-    } else {
-      await swalConfig.fire({
-        icon: "error",
-        title: "Error al cambiar estado",
-        text: message,
-        confirmButtonText: "Entendido",
-      });
-    }
-  },
+  const data = err.response?.data || {};
+  const message =
+    data.message ||
+    data.mensaje ||
+    data.error ||
+    (typeof data === "string" ? data : "Error al cambiar estado del puesto.");
+
+  // 🔍 Detección de mensaje específico del SP
+  if (message.toLowerCase().includes("empleados activos")) {
+    await swalConfig.fire({
+      icon: "warning",
+      title: "No se puede desactivar el puesto",
+      text:
+        "Este puesto tiene empleados activos asignados. " +
+        "Primero debes reasignarlos o inactivarlos antes de continuar.",
+      confirmButtonText: "Entendido",
+      confirmButtonColor: "#facc15", // Amarillo
+    });
+  } else {
+    // 🚨 Cualquier otro error genérico
+    await swalConfig.fire({
+      icon: "error",
+      title: "Error al cambiar estado",
+      text: message,
+      confirmButtonText: "Cerrar",
+    });
+  }
+
+  queryClient.invalidateQueries({ queryKey: ["puestos"] });
+},
+
 });
 
-
-  /** 🔍 Filtrar por búsqueda */
+  // Filtrar búsqueda
   const puestosFiltrados = useMemo(() => {
     const query = search.toLowerCase();
     return puestos.filter(
@@ -107,27 +137,23 @@ const toggleActivo = useMutation({
     );
   }, [puestos, search]);
 
-  /** 📄 Paginación */
+  // Paginación
   const totalPages = Math.ceil(puestosFiltrados.length / itemsPerPage);
   const paginatedData = puestosFiltrados.slice(
     (page - 1) * itemsPerPage,
     page * itemsPerPage
   );
 
-  React.useEffect(() => {
-    setPage(1);
-  }, [search]);
+  useEffect(() => setPage(1), [search]);
 
   if (isLoading) return <LoadingSpinner />;
   if (isError)
-    return (
-      <p className="text-danger-light text-center mt-4">
-        ⚠️ Error al cargar puestos.
-      </p>
-    );
+    return <p className="text-red-600 text-center mt-4">Error al cargar puestos.</p>;
 
-  /** 🧩 Columnas */
-  const columns: { key: keyof (Puesto & { index: number; acciones: React.ReactNode }); label: string }[] = [
+  const columns: {
+    key: keyof (Puesto & { index: number; acciones: React.ReactNode });
+    label: string;
+  }[] = [
     { key: "index", label: "#" },
     { key: "nombre", label: "Nombre" },
     { key: "descripcion", label: "Descripción" },
@@ -135,51 +161,46 @@ const toggleActivo = useMutation({
     { key: "acciones", label: "Acciones" },
   ];
 
-  /** 🧮 Datos adaptados */
   const tableData = paginatedData.map((p, index) => ({
     ...p,
     index: (page - 1) * itemsPerPage + index + 1,
-    salarioBase: p.salarioBase.toFixed(2),
+    salarioBase: Number(p.salarioBase || 0).toFixed(2),
     acciones: (
       <div className="flex gap-3 items-center">
-        {/* 🔘 Toggle de estado */}
-        <ToggleSwitch
-          checked={p.activo}
-          onChange={() => toggleActivo.mutate(p.id)}
-          color={p.activo ? "success" : "danger"}
-          label={p.activo ? "Activo" : "Inactivo"}
-        />
+       <ToggleSwitch
+  checked={p.activo}
+  onChange={() => toggleActivo.mutate(p)} //  ahora pasamos el puesto completo
+  color={p.activo ? "success" : "danger"}
+  label={p.activo ? "Activo" : "Inactivo"}
+/>
 
-        {/* ✏️ Botón Editar */}
-       <Button
-  variant="secondary"
-  className={`text-sm text-gray-900 ${
-    p.activo
-      ? "bg-yellow-400 hover:bg-yellow-500"
-      : "bg-gray-300 cursor-not-allowed opacity-60"
-  }`}
-  onClick={() => {
-    if (!p.activo) return; // 🔒 evita que abra el modal si está inactivo
-    setSelected(p);
-    setForm({
-      nombre: p.nombre,
-      descripcion: p.descripcion,
-      salarioBase: p.salarioBase,
-    });
-    setShowForm(true);
-  }}
-  disabled={!p.activo} // 🚫 desactivar funcionalidad del botón
->
-  ✏️ Editar
-</Button>
-
+        <Button
+          variant="secondary"
+          className={`text-sm ${
+            p.activo
+              ? "bg-yellow-400 hover:bg-yellow-500 text-black"
+              : "bg-gray-300 cursor-not-allowed opacity-60"
+          }`}
+          onClick={() => {
+            if (!p.activo) return;
+            setSelected(p);
+            setForm({
+              nombre: p.nombre,
+              descripcion: p.descripcion,
+              salarioBase: p.salarioBase,
+            });
+            setShowForm(true);
+          }}
+          disabled={!p.activo}
+        >
+          Editar
+        </Button>
       </div>
     ),
   }));
 
   return (
     <div className="space-y-6 text-gray-900">
-      {/* 🧭 Encabezado */}
       <div className="flex justify-between items-center flex-wrap gap-3">
         <h1 className="text-2xl font-bold">Puestos</h1>
         <Button
@@ -189,11 +210,10 @@ const toggleActivo = useMutation({
             setShowForm(true);
           }}
         >
-          ➕ Nuevo puesto
+          Nuevo puesto
         </Button>
       </div>
 
-      {/* 🔍 Buscador */}
       <div className="flex flex-wrap gap-3 items-center">
         <Input
           placeholder="Buscar por nombre o descripción..."
@@ -203,13 +223,11 @@ const toggleActivo = useMutation({
         />
       </div>
 
-      {/* 🧱 Tabla */}
       {puestosFiltrados.length > 0 ? (
         <>
           <Table data={tableData} columns={columns} />
-          {/* 🔢 Paginación */}
           <div className="flex justify-between items-center mt-4 text-sm">
-            <span className="text-gray-600">
+            <span>
               Página {page} de {totalPages || 1}
             </span>
             <div className="flex gap-2">
@@ -218,14 +236,14 @@ const toggleActivo = useMutation({
                 disabled={page === 1}
                 onClick={() => setPage((prev) => Math.max(prev - 1, 1))}
               >
-                ⬅️ Anterior
+                Anterior
               </Button>
               <Button
                 variant="secondary"
                 disabled={page === totalPages || totalPages === 0}
                 onClick={() => setPage((prev) => Math.min(prev + 1, totalPages))}
               >
-                Siguiente ➡️
+                Siguiente
               </Button>
             </div>
           </div>
@@ -234,7 +252,6 @@ const toggleActivo = useMutation({
         <p className="text-gray-500 italic">No se encontraron puestos.</p>
       )}
 
-      {/* 🪟 Modal */}
       <Modal
         show={showForm}
         title={selected ? "Editar Puesto" : "Nuevo Puesto"}
@@ -247,18 +264,14 @@ const toggleActivo = useMutation({
         <form
           onSubmit={async (e) => {
             e.preventDefault();
-
-            // Validación simple
             if (!form.nombre.trim() || form.salarioBase <= 0) {
               await swalConfig.fire({
                 icon: "warning",
                 title: "Campos incompletos",
                 text: "Debes ingresar un nombre y un salario base válido.",
-                confirmButtonText: "Entendido",
               });
               return;
             }
-
             const result = await swalConfig.fire({
               title: selected ? "¿Guardar cambios?" : "¿Crear nuevo puesto?",
               text: selected
@@ -269,7 +282,6 @@ const toggleActivo = useMutation({
               confirmButtonText: selected ? "Sí, guardar" : "Sí, crear",
               cancelButtonText: "Cancelar",
             });
-
             if (result.isConfirmed) guardar.mutate();
           }}
           className="space-y-3"
@@ -280,13 +292,11 @@ const toggleActivo = useMutation({
             onChange={(e) => setForm({ ...form, nombre: e.target.value })}
             required
           />
-
           <Input
             label="Descripción"
             value={form.descripcion}
             onChange={(e) => setForm({ ...form, descripcion: e.target.value })}
           />
-
           <Input
             label="Salario Base (Q)"
             type="number"
@@ -297,11 +307,9 @@ const toggleActivo = useMutation({
             }
             required
           />
-
           <div className="flex justify-end pt-2">
             <Button
               type="submit"
-              variant="success"
               disabled={guardar.isPending}
               className="min-w-[130px]"
             >

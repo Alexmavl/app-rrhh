@@ -1,9 +1,9 @@
-// src/features/auth/pages/LoginPage.tsx
 import { useForm } from "react-hook-form";
 import { useNavigate } from "react-router-dom";
-import { useContext } from "react";
+import { useContext, useState } from "react";
 import { AuthContext } from "../../../context/AuthContext";
-import { login } from "../../../services/usuarios.service";
+import { login } from "../../../services/auth.service";
+import { Modal } from "../../../components/ui/Modal"; // ✅ Importar modal mejorado
 
 interface LoginInput {
   email: string;
@@ -27,24 +27,17 @@ export default function LoginPage() {
 
   const { setUser } = useContext(AuthContext)!;
   const navigate = useNavigate();
+  const [showHelp, setShowHelp] = useState(false); // ✅ Estado del modal de ayuda
 
   const onSubmit = async (data: LoginInput) => {
     try {
-      const res = (await login(data.email, data.password)) as LoginResponse;
-
-      // 🔐 Guardar token y usuario
+      const res = (await login(data)) as LoginResponse;
       sessionStorage.setItem("token", res.token);
       sessionStorage.setItem("usuario", JSON.stringify(res));
-
-      // ✅ Actualizar contexto
       setUser(res);
-
-      // 🕒 Esperar a que el contexto se sincronice antes de redirigir
-      setTimeout(() => {
-        navigate("/inicio", { replace: true });
-      }, 100);
+      navigate("/inicio", { replace: true });
     } catch (error: any) {
-      alert("❌ Credenciales inválidas o error de conexión.");
+      alert(error.message || "Credenciales inválidas o error de conexión.");
     }
   };
 
@@ -61,7 +54,6 @@ export default function LoginPage() {
 
         {/* Formulario */}
         <form onSubmit={handleSubmit(onSubmit)} className="space-y-5">
-          {/* Correo */}
           <div>
             <label
               htmlFor="email"
@@ -89,7 +81,6 @@ export default function LoginPage() {
             )}
           </div>
 
-          {/* Contraseña */}
           <div>
             <label
               htmlFor="password"
@@ -117,7 +108,6 @@ export default function LoginPage() {
             )}
           </div>
 
-          {/* Botón de envío */}
           <button
             type="submit"
             disabled={isSubmitting}
@@ -152,12 +142,35 @@ export default function LoginPage() {
           </button>
         </form>
 
+        {/* Enlace de ayuda */}
+        <p className="text-center text-sm text-blue-600 mt-4 cursor-pointer hover:underline" onClick={() => setShowHelp(true)}>
+          ¿Necesitas ayuda?
+        </p>
+
         {/* Footer */}
         <p className="text-center text-sm text-gray-500 mt-6">
-          © {new Date().getFullYear()} Recursos Humanos · Todos los derechos
-          reservados
+          © {new Date().getFullYear()} Recursos Humanos · Todos los derechos reservados
         </p>
       </div>
+
+      {/* 🧩 Modal corporativo de ayuda */}
+      <Modal show={showHelp} onClose={() => setShowHelp(false)} title="Soporte de acceso" size="sm">
+        <div className="space-y-3 text-gray-700">
+          <p>Si tienes problemas para acceder al sistema, contacta al área de Recursos Humanos o envía un correo a:</p>
+          <p className="font-semibold text-blue-600">soporte@empresa.com</p>
+          <p className="text-sm text-gray-500 mt-2">
+            También puedes solicitar el restablecimiento de tu contraseña desde el portal interno.
+          </p>
+          <div className="flex justify-end pt-2">
+            <button
+              onClick={() => setShowHelp(false)}
+              className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition"
+            >
+              Cerrar
+            </button>
+          </div>
+        </div>
+      </Modal>
     </div>
   );
 }

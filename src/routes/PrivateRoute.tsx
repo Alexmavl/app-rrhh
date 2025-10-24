@@ -1,4 +1,3 @@
-// src/routes/PrivateRoute.tsx
 import { ReactNode, useContext } from "react";
 import { Navigate, useLocation } from "react-router-dom";
 import { AuthContext } from "../context/AuthContext";
@@ -12,7 +11,7 @@ export default function PrivateRoute({ children }: Props) {
   const auth = useContext(AuthContext);
   const location = useLocation();
 
-  // ⏳ Mientras el contexto verifica sesión, mostrar spinner
+  // Si el contexto aún está verificando sesión → mostrar spinner
   if (auth?.loading) {
     return (
       <div className="flex justify-center items-center min-h-screen">
@@ -21,14 +20,15 @@ export default function PrivateRoute({ children }: Props) {
     );
   }
 
-  // 🚫 Si no hay usuario ni token → redirige al login
+  // Obtener token y usuario del sessionStorage
   const token = sessionStorage.getItem("token");
   const usuario = sessionStorage.getItem("usuario");
 
-  if (!auth?.user && (!token || !usuario)) {
+  // Si no hay token o usuario → redirigir al login
+  if (!token || !usuario) {
     return <Navigate to="/login" state={{ from: location }} replace />;
   }
 
-  // ✅ Si todo está bien → renderiza las rutas protegidas
+  // Si hay token, usuario y el contexto está listo → renderizar contenido protegido
   return <>{children}</>;
 }

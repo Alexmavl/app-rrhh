@@ -1,30 +1,41 @@
 {
   "compilerOptions": {
+    /* === Núcleo de compilación === */
     "target": "ES2022",
     "lib": ["ES2022", "DOM"],
-    "jsx": "react-jsx",
     "module": "ESNext",
     "moduleResolution": "bundler",
+    "noEmit": true,
+
+    /* === React / JSX === */
+    "jsx": "react-jsx",
+    "jsxImportSource": "react",
+
+    /* === Tipos y validación === */
+    "types": ["react", "react-dom"],
     "strict": true,
     "skipLibCheck": true,
-    "allowImportingTsExtensions": false,
-    "verbatimModuleSyntax": false,
     "forceConsistentCasingInFileNames": true,
-    "noEmit": true,
+
+    /* === Compatibilidad y sintaxis moderna === */
     "esModuleInterop": true,
     "resolveJsonModule": true,
-    "baseUrl": "src",
-    "types": ["react", "react-dom"],
+    "allowSyntheticDefaultImports": true,
 
+    /* === Rutas personalizadas (alias) === */
+    "baseUrl": "src",
     "paths": {
       "@api/*": ["api/*"],
       "@features/*": ["features/*"],
       "@components/*": ["components/*"],
       "@routes/*": ["routes/*"],
       "@context/*": ["context/*"],
-      "@hooks/*": ["hooks/*"]
+      "@hooks/*": ["hooks/*"],
+      "@utils/*": ["utils/*"],
+      "@models/*": ["models/*"],
+      "@services/*": ["services/*"]
     }
-    
   },
-  "include": ["src"]
+  "include": ["src"],
+  "exclude": ["node_modules", "dist"]
 }

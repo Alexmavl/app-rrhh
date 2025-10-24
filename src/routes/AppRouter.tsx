@@ -5,41 +5,34 @@ import PuestosPage from "../features/puestos/pages/PuestosPage";
 import ReportesPage from "../features/reportes/pages/ReportesPage";
 import NominaPage from "../features/nomina/pages/NominaPage";
 import LoginPage from "../features/auth/pages/LoginPage";
-import InicioPage from "../features/inicio/pages/InicioPage"; // 👈 Nuevo import
+import InicioPage from "../features/inicio/pages/InicioPage";
 import PrivateRoute from "./PrivateRoute";
 import { MainLayout } from "../components/layout/MainLayout";
 
 export default function AppRouter() {
   return (
     <Routes>
-      <Route element={<MainLayout />}>
-        {/* 🟢 Página de login */}
-        <Route path="/login" element={<LoginPage />} />
+      {/* Ruta pública */}
+      <Route path="/login" element={<LoginPage />} />
 
-        {/* 🔒 Rutas protegidas */}
-        <Route
-          element={
-            <PrivateRoute>
-              <Outlet />
-            </PrivateRoute>
-          }
-        >
-          {/* 👇 Redirección por defecto al Inicio */}
-          <Route path="/" element={<Navigate to="/inicio" replace />} />
-
-          {/* 📊 Página de inicio / dashboard */}
-          <Route path="/inicio" element={<InicioPage />} />
-
-          {/* 👥 Módulos principales */}
-          <Route path="/empleados" element={<EmpleadosPage />} />
-          <Route path="/departamentos" element={<DepartamentosPage />} />
-          <Route path="/puestos" element={<PuestosPage />} />
-          <Route path="/nomina" element={<NominaPage />} />
-          <Route path="/reportes" element={<ReportesPage />} />
-        </Route>
+      {/* Rutas protegidas con layout */}
+      <Route
+        element={
+          <PrivateRoute>
+            <MainLayout />
+          </PrivateRoute>
+        }
+      >
+        <Route path="/" element={<Navigate to="/inicio" replace />} />
+        <Route path="/inicio" element={<InicioPage />} />
+        <Route path="/empleados" element={<EmpleadosPage />} />
+        <Route path="/departamentos" element={<DepartamentosPage />} />
+        <Route path="/puestos" element={<PuestosPage />} />
+        <Route path="/nomina" element={<NominaPage />} />
+        <Route path="/reportes" element={<ReportesPage />} />
       </Route>
 
-      {/* ❌ Página 404 */}
+      {/* 404 */}
       <Route
         path="*"
         element={
