@@ -66,18 +66,19 @@ export const swalInfo = (title: string, text?: string) =>
 
 export const swalConfirm = (
   title: string,
-  text: string,
+  text?: string,
   confirmText: string = "Sí, confirmar",
   cancelText: string = "Cancelar"
 ) =>
   swalConfig.fire({
+    icon: "question",
     title,
     text,
-    icon: "question",
     showCancelButton: true,
     confirmButtonText: confirmText,
     cancelButtonText: cancelText,
   });
+
 
 export const swalDelete = (
   itemName: string = "este registro",

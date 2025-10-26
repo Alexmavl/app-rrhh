@@ -1,116 +1,178 @@
-import { useEffect, useState, useContext } from "react";
-import { AuthContext } from "../../../context/AuthContext";
-import { nominaService } from "../../../services/nomina.service";
+import React, { useState, useEffect } from "react";
+import { useNavigate } from "react-router-dom";
 import { Card } from "../../../components/ui/Card";
 import { Table } from "../../../components/ui/Table";
 import { Button } from "../../../components/ui/Button";
 import { Modal } from "../../../components/ui/Modal";
-import type { Nomina } from "../../../models/nomina.model";
+import { LoadingSpinner } from "../../../shared/LoadingSpinner";
+import { NominaForm } from "../components/NominaForm";
+import { BeneficioModal } from "../components/BeneficioModal";
+import { nominaService } from "../../../services/nomina.service";
+import { swalSuccess, swalError, swalConfirm } from "../../../utils/swalConfig";
 
-export default function NominaPage() {
-  const { user } = useContext(AuthContext)!;
-  const [nominas, setNominas] = useState<Nomina[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
-  const [periodoSeleccionado, setPeriodoSeleccionado] = useState<string | null>(null);
+/**
+ * 📄 Página principal de Nóminas
+ * Lista las nóminas procesadas por periodo.
+ */
+export function NominaPage(): React.JSX.Element {
+  const [nominas, setNominas] = useState<any[]>([]);
+  const [showForm, setShowForm] = useState(false);
+  const [showBeneficio, setShowBeneficio] = useState(false);
+  const [isLoading, setIsLoading] = useState(false);
+  const navigate = useNavigate();
+
+  /** 🔹 Función utilitaria para formato de fecha (dd/mm/yyyy) */
+  const formatDate = (date: string | Date | null) => {
+    if (!date) return "—";
+    try {
+      return new Date(date).toLocaleDateString("es-GT", {
+        day: "2-digit",
+        month: "2-digit",
+        year: "numeric",
+      });
+    } catch {
+      return "—";
+    }
+  };
+
+  /** 🔹 Cargar todas las nóminas */
+  const fetchNominas = async () => {
+    try {
+      setIsLoading(true);
+      const data = await nominaService.listar();
+      setNominas(Array.isArray(data) ? data : []);
+    } catch (err) {
+      console.error(err);
+      swalError("Error al cargar nóminas");
+    } finally {
+      setIsLoading(false);
+    }
+  };
 
   useEffect(() => {
-    nominaService
-      .listar()
-      .then(setNominas)
-      .catch((err) => setError(err.message))
-      .finally(() => setLoading(false));
+    fetchNominas();
   }, []);
 
-  if (loading) return <p className="text-center mt-10">Cargando nóminas...</p>;
-  if (error) return <p className="text-center text-red-500">{error}</p>;
-
-  // ✅ Agrupar por periodo
-  const grupos = agruparPorPeriodo(nominas);
-
-  function agruparPorPeriodo(nominas: Nomina[]) {
-    const grupos: Record<string, Nomina[]> = {};
-    for (const n of nominas) {
-      if (!grupos[n.periodo]) grupos[n.periodo] = [];
-      grupos[n.periodo].push(n);
+  /** 🔹 Cambiar estado Activo/Inactivo */
+  const handleToggleEstado = async (id: number) => {
+    const confirm = await swalConfirm("¿Cambiar estado de la nómina?");
+    if (!confirm.isConfirmed) return;
+    try {
+      await nominaService.toggleActivo(id);
+      swalSuccess("Estado actualizado correctamente");
+      fetchNominas();
+    } catch (err) {
+      swalError("Error al cambiar estado de la nómina");
     }
-    return grupos;
-  }
+  };
 
-  const periodos = Object.keys(grupos);
+  /** 🔹 Ver detalle (redirigir a NominaDetallePage) */
+  const handleVerDetalle = (id: number) => {
+    navigate(`/nomina/${id}`);
+  };
+
+  /** 🔹 Columnas de la tabla principal */
+  const columns = [
+    { key: "id", label: "Nómina #" },
+    { key: "periodo", label: "Periodo" },
+    {
+      key: "fechaInicio",
+      label: "Inicio",
+      render: (v: any) => formatDate(v),
+    },
+    {
+      key: "fechaFin",
+      label: "Fin",
+      render: (v: any) => formatDate(v),
+    },
+    {
+      key: "fechaProcesada",
+      label: "Procesada",
+      render: (v: any) => formatDate(v),
+    },
+    {
+      key: "activo",
+      label: "Estado",
+      render: (v: any) =>
+        v ? (
+          <span className="text-green-700 font-semibold">Activa</span>
+        ) : (
+          <span className="text-gray-500">Inactiva</span>
+        ),
+    },
+    {
+      key: "acciones",
+      label: "Acciones",
+      align: "center" as const,
+      render: (_: any, row: any) => (
+        <div className="flex gap-2 justify-center">
+          <Button size="sm" onClick={() => handleVerDetalle(row.id)}>
+            🔍 Detalle
+          </Button>
+          <Button
+            size="sm"
+            variant={row.activo ? "secondary" : "ghost"}
+            onClick={() => handleToggleEstado(row.id)}
+          >
+            {row.activo ? "Desactivar" : "Activar"}
+          </Button>
+        </div>
+      ),
+    },
+  ];
+
+  if (isLoading) return <LoadingSpinner />;
 
   return (
-    <div className="p-4 md:p-6 lg:p-8">
-      <h1 className="text-3xl font-bold text-blue-700 mb-6">💰 Nómina por Periodo</h1>
+    <div className="p-6 space-y-4">
+      {/* Encabezado */}
+      <div className="flex justify-between items-center mb-2">
+        <h1 className="text-2xl font-semibold text-gray-800">
+          Nóminas procesadas
+        </h1>
+        <div className="flex gap-2">
+          <Button variant="secondary" onClick={() => setShowBeneficio(true)}>
+            + Beneficio global
+          </Button>
+          <Button onClick={() => setShowForm(true)}>+ Nueva Nómina</Button>
+        </div>
+      </div>
 
+      {/* Tabla */}
       <Card>
         <Table
-          columns={[
-            { key: "periodo" as any, label: "Periodo" },
-            { key: "tipoPeriodo" as any, label: "Tipo" },
-            { key: "fechaInicio" as any, label: "Inicio" },
-            { key: "fechaFin" as any, label: "Fin" },
-            { key: "total" as any, label: "Total a Pagar (Q)" },
-          ]}
-          data={periodos.map((periodo) => {
-            const lista = grupos[periodo];
-            const total = lista.reduce((acc, n) => acc + (n.totalLiquido ?? 0), 0);
-            return {
-              periodo,
-              tipoPeriodo: lista[0]?.tipoPeriodo || "—",
-              fechaInicio: new Date(lista[0]?.fechaInicio ?? "").toLocaleDateString(),
-              fechaFin: new Date(lista[0]?.fechaFin ?? "").toLocaleDateString(),
-              total: total.toFixed(2),
-            };
-          })}
+          data={nominas}
+          columns={columns}
+          loading={isLoading}
+          emptyMessage="No hay nóminas registradas"
         />
-
-        <div className="mt-4 flex flex-wrap gap-2">
-          {periodos.map((p) => (
-            <Button key={p} variant="secondary" onClick={() => setPeriodoSeleccionado(p)}>
-              👁️ Ver {p}
-            </Button>
-          ))}
-        </div>
       </Card>
 
-      {/* Modal con detalle por periodo */}
-      <Modal
-        show={!!periodoSeleccionado}
-        title={`Detalle de Nómina - ${periodoSeleccionado}`}
-        onClose={() => setPeriodoSeleccionado(null)}
-      >
-        {periodoSeleccionado ? (
-          <div className="overflow-x-auto">
-            <table className="w-full text-sm border border-gray-200 rounded-lg">
-              <thead className="bg-blue-700 text-white">
-                <tr>
-                  <th className="p-2 text-left">Empleado</th>
-                  <th className="p-2 text-left">Departamento</th>
-                  <th className="p-2 text-left">Puesto</th>
-                  <th className="p-2 text-left">Salario Base</th>
-                  <th className="p-2 text-left">Total Líquido</th>
-                </tr>
-              </thead>
-              <tbody>
-                {grupos[periodoSeleccionado].map((n) => (
-                  <tr key={n.id} className="border-b hover:bg-gray-50">
-                    <td className="p-2">{n.empleado}</td>
-                    <td className="p-2">{n.departamento}</td>
-                    <td className="p-2">{n.puesto}</td>
-                    <td className="p-2">Q{n.salarioBase.toFixed(2)}</td>
-                    <td className="p-2 text-green-600 font-semibold">
-                      Q{n.totalLiquido?.toFixed(2)}
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        ) : (
-          <p>Selecciona un periodo.</p>
-        )}
-      </Modal>
+      {/* Modal: Generar nueva nómina */}
+      {showForm && (
+        <Modal show={true} title="Procesar Nómina" onClose={() => setShowForm(false)}>
+          <NominaForm
+            onClose={() => setShowForm(false)}
+            onSuccess={fetchNominas}
+          />
+        </Modal>
+      )}
+
+      {/* Modal: Beneficio global */}
+      {showBeneficio && (
+        <Modal
+          show={true}
+          title="Registrar Beneficio o Descuento"
+          onClose={() => setShowBeneficio(false)}
+        >
+          <BeneficioModal
+            onClose={() => setShowBeneficio(false)}
+            onSuccess={fetchNominas}
+          />
+        </Modal>
+      )}
     </div>
   );
 }
+
+export default NominaPage;
