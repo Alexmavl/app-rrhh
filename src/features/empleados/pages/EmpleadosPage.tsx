@@ -154,34 +154,43 @@ export default function EmpleadosPage() {
         }}
       />
     ),
-    acciones: (
-      <div className="flex gap-2 justify-center flex-wrap">
-        <Button
-          variant="primary"
-          size="sm"
-          icon={<User size={14} />}
-          onClick={() => handlePerfil(emp)}
-        >
-          Perfil
-        </Button>
-        <Button
-          variant="info"
-          size="sm"
-          icon={<GraduationCap size={14} />}
-          onClick={() => handleFormacion(emp)}
-        >
-          Formación
-        </Button>
-        <Button
-          variant="warning"
-          size="sm"
-          icon={<Edit size={14} />}
-          onClick={() => handleEdit(emp)}
-        >
-          Editar
-        </Button>
-      </div>
-    ),
+   acciones: (
+  <div className="flex gap-2 justify-center flex-wrap">
+    <Button
+      variant="primary"
+      size="sm"
+      icon={<User size={14} />}
+      onClick={() => handlePerfil(emp)}
+      disabled={!emp.activo} // 👈 Deshabilitado si el empleado está inactivo
+      title={!emp.activo ? "Empleado inactivo" : "Ver perfil"}
+    >
+      Perfil
+    </Button>
+
+    <Button
+      variant="info"
+      size="sm"
+      icon={<GraduationCap size={14} />}
+      onClick={() => handleFormacion(emp)}
+      disabled={!emp.activo} // 👈 también aquí
+      title={!emp.activo ? "Empleado inactivo" : "Ver formación y documentos"}
+    >
+      Formación
+    </Button>
+
+    <Button
+      variant="warning"
+      size="sm"
+      icon={<Edit size={14} />}
+      onClick={() => handleEdit(emp)}
+      disabled={!emp.activo} // 👈 y aquí
+      title={!emp.activo ? "Empleado inactivo" : "Editar información"}
+    >
+      Editar
+    </Button>
+  </div>
+),
+
   }));
 
   return (

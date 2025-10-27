@@ -33,7 +33,8 @@ export default function AppRouter() {
         <Route path="/departamentos" element={<DepartamentosPage />} />
         <Route path="/puestos" element={<PuestosPage />} />
         <Route path="/nomina" element={<NominaPage />} />
-        <Route path="/nomina/:id" element={<NominaDetallePage />} />
+       <Route path="/nomina/detalle/:periodo" element={<NominaDetallePage />} />
+
         <Route path="/reportes" element={<ReportesPage />} />
       </Route>
 

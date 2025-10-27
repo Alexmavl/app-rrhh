@@ -8,11 +8,11 @@ import { LoadingSpinner } from "../../../shared/LoadingSpinner";
 import { NominaForm } from "../components/NominaForm";
 import { BeneficioModal } from "../components/BeneficioModal";
 import { nominaService } from "../../../services/nomina.service";
-import { swalSuccess, swalError, swalConfirm } from "../../../utils/swalConfig";
+import { swalSuccess, swalError } from "../../../utils/swalConfig";
 
 /**
- * 📄 Página principal de Nóminas
- * Lista las nóminas procesadas por periodo.
+ *  Página principal de Nóminas
+ * Muestra una fila por periodo (nóminas agrupadas).
  */
 export function NominaPage(): React.JSX.Element {
   const [nominas, setNominas] = useState<any[]>([]);
@@ -21,7 +21,7 @@ export function NominaPage(): React.JSX.Element {
   const [isLoading, setIsLoading] = useState(false);
   const navigate = useNavigate();
 
-  /** 🔹 Función utilitaria para formato de fecha (dd/mm/yyyy) */
+  /**  Función utilitaria para formato de fecha (dd/mm/yyyy) */
   const formatDate = (date: string | Date | null) => {
     if (!date) return "—";
     try {
@@ -35,11 +35,11 @@ export function NominaPage(): React.JSX.Element {
     }
   };
 
-  /** 🔹 Cargar todas las nóminas */
+  /**  Cargar nóminas agrupadas por periodo */
   const fetchNominas = async () => {
     try {
       setIsLoading(true);
-      const data = await nominaService.listar();
+      const data = await nominaService.listarResumen(); //  llama al nuevo endpoint
       setNominas(Array.isArray(data) ? data : []);
     } catch (err) {
       console.error(err);
@@ -53,28 +53,14 @@ export function NominaPage(): React.JSX.Element {
     fetchNominas();
   }, []);
 
-  /** 🔹 Cambiar estado Activo/Inactivo */
-  const handleToggleEstado = async (id: number) => {
-    const confirm = await swalConfirm("¿Cambiar estado de la nómina?");
-    if (!confirm.isConfirmed) return;
-    try {
-      await nominaService.toggleActivo(id);
-      swalSuccess("Estado actualizado correctamente");
-      fetchNominas();
-    } catch (err) {
-      swalError("Error al cambiar estado de la nómina");
-    }
-  };
-
-  /** 🔹 Ver detalle (redirigir a NominaDetallePage) */
-  const handleVerDetalle = (id: number) => {
-    navigate(`/nomina/${id}`);
-  };
-
-  /** 🔹 Columnas de la tabla principal */
+  const handleVerDetalle = (periodo: string) => {
+  const safePeriodo = encodeURIComponent(periodo);
+  navigate(`/nomina/detalle/${safePeriodo}`);
+};
+  /**  Columnas de la tabla principal (resumen global por periodo) */
   const columns = [
-    { key: "id", label: "Nómina #" },
     { key: "periodo", label: "Periodo" },
+    { key: "tipoPeriodo", label: "Tipo" },
     {
       key: "fechaInicio",
       label: "Inicio",
@@ -91,10 +77,21 @@ export function NominaPage(): React.JSX.Element {
       render: (v: any) => formatDate(v),
     },
     {
-      key: "activo",
+      key: "totalEmpleados",
+      label: "Empleados",
+      align: "center" as const,
+    },
+    {
+      key: "totalLiquidoGlobal",
+      label: "Total Nómina (Q)",
+      align: "right" as const,
+      render: (v: any) => `Q${Number(v || 0).toFixed(2)}`,
+    },
+    {
+      key: "estado",
       label: "Estado",
       render: (v: any) =>
-        v ? (
+        v === "Activa" ? (
           <span className="text-green-700 font-semibold">Activa</span>
         ) : (
           <span className="text-gray-500">Inactiva</span>
@@ -106,16 +103,10 @@ export function NominaPage(): React.JSX.Element {
       align: "center" as const,
       render: (_: any, row: any) => (
         <div className="flex gap-2 justify-center">
-          <Button size="sm" onClick={() => handleVerDetalle(row.id)}>
-            🔍 Detalle
-          </Button>
-          <Button
-            size="sm"
-            variant={row.activo ? "secondary" : "ghost"}
-            onClick={() => handleToggleEstado(row.id)}
-          >
-            {row.activo ? "Desactivar" : "Activar"}
-          </Button>
+        <Button size="sm" onClick={() => handleVerDetalle(row.periodo)}>
+  🔍 Detalle
+</Button>
+
         </div>
       ),
     },
@@ -125,10 +116,10 @@ export function NominaPage(): React.JSX.Element {
 
   return (
     <div className="p-6 space-y-4">
-      {/* Encabezado */}
+      {/*  Encabezado */}
       <div className="flex justify-between items-center mb-2">
         <h1 className="text-2xl font-semibold text-gray-800">
-          Nóminas procesadas
+          Nóminas procesadas por periodo
         </h1>
         <div className="flex gap-2">
           <Button variant="secondary" onClick={() => setShowBeneficio(true)}>
@@ -138,7 +129,7 @@ export function NominaPage(): React.JSX.Element {
         </div>
       </div>
 
-      {/* Tabla */}
+      {/* Tabla de nóminas resumidas */}
       <Card>
         <Table
           data={nominas}
@@ -150,7 +141,11 @@ export function NominaPage(): React.JSX.Element {
 
       {/* Modal: Generar nueva nómina */}
       {showForm && (
-        <Modal show={true} title="Procesar Nómina" onClose={() => setShowForm(false)}>
+        <Modal
+          show={true}
+          title="Procesar Nómina"
+          onClose={() => setShowForm(false)}
+        >
           <NominaForm
             onClose={() => setShowForm(false)}
             onSuccess={fetchNominas}
@@ -158,7 +153,7 @@ export function NominaPage(): React.JSX.Element {
         </Modal>
       )}
 
-      {/* Modal: Beneficio global */}
+      {/* Modal: Registrar beneficio global */}
       {showBeneficio && (
         <Modal
           show={true}

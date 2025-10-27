@@ -48,7 +48,7 @@ async validarExpediente(idEmpleado: number, usuarioEjecutorId: number, rolEjecut
     usuarioEjecutorId,
     rolEjecutor,
   });
-  return res.data.data; // ✅ Importante: devuelve el objeto directamente
+ return Array.isArray(res.data.data) ? res.data.data[0] : res.data.data;
 },
 
   /**
