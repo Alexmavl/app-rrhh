@@ -1,4 +1,3 @@
-// src/hooks/useFetch.ts
 import { useEffect, useState } from "react";
 import { api } from "../api/client";
 
@@ -7,8 +6,8 @@ import { api } from "../api/client";
  * @param url Endpoint (por ejemplo "/empleados")
  * @param deps Dependencias opcionales para recargar datos
  */
-export function useFetch<T>(url: string, deps: any[] = []) {
-  const [data, setData] = useState<T | null>(null);
+export function useFetch<T>(url: string, deps: any[] = [], initialValue?: T) {
+  const [data, setData] = useState<T>(initialValue as T);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -23,7 +22,9 @@ export function useFetch<T>(url: string, deps: any[] = []) {
         if (mounted) setData(res.data);
       })
       .catch((err) => {
-        if (mounted) setError(err.response?.data?.message || err.message);
+        console.error("❌ useFetch error:", err);
+        if (mounted)
+          setError(err.response?.data?.message || err.message || "Error al cargar datos");
       })
       .finally(() => {
         if (mounted) setLoading(false);

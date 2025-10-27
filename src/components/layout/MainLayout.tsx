@@ -1,31 +1,47 @@
-// src/components/layout/MainLayout.tsx
 import { Navbar } from "./Navbar";
-import { Sidebar } from "./Sidebar";
 import { Outlet, useLocation } from "react-router-dom";
 
 export const MainLayout = () => {
   const location = useLocation();
   const isLoginPage = location.pathname === "/login";
 
-  // 🚫 Oculta Navbar y Sidebar en /login
+  //  En login no se muestra la barra superior ni el footer
   if (isLoginPage) {
     return (
-      <main className="min-h-screen flex items-center justify-center bg-gray-100 dark:bg-gray-900 transition-colors">
+      <div className="min-h-screen w-full bg-surface-light text-gray-900 transition-colors duration-300">
         <Outlet />
-      </main>
+      </div>
     );
   }
 
-  // ✅ Layout completo para las demás rutas
+  //  Layout principal con Navbar fijo arriba y Footer fijo abajo
   return (
-    <div className="flex flex-col min-h-screen">
-      <Navbar />
-      <div className="flex flex-1">
-        <Sidebar />
-        <main className="flex-1 p-6 bg-gray-50 dark:bg-gray-900 text-gray-900 dark:text-gray-100 transition-colors">
-          <Outlet />
-        </main>
+    <div className="flex flex-col h-screen bg-surface-light text-gray-900 transition-colors duration-300 overflow-hidden">
+      {/*  Navbar fijo en la parte superior */}
+      <div className="fixed top-0 left-0 right-0 z-50">
+        <Navbar />
       </div>
+
+      {/*  Contenido principal con scroll y padding ajustado */}
+      <main className="flex-1 overflow-y-auto pt-16 md:pt-[68px] pb-24 md:pb-28">
+        <div className="p-4 md:p-6 lg:p-8 max-w-7xl mx-auto w-full">
+          <Outlet />
+        </div>
+      </main>
+
+      {/*  Footer fijo en la parte inferior */}
+      <footer 
+        className="fixed bottom-0 left-0 right-0 text-white text-center py-3 md:py-4 shadow-inner z-40"
+        style={{ backgroundColor: "#023778" }}
+      >
+        <div className="px-4">
+          <p className="text-xs sm:text-sm">
+            © {new Date().getFullYear()}{" "}
+            <strong className="font-semibold">Sistema RRHH</strong> · Todos los derechos reservados.   Desarrollado por el equipo Grupo No. 1
+          </p>
+       
+        </div>
+      </footer>
     </div>
   );
 };

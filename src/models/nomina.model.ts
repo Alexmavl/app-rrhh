@@ -1,13 +1,18 @@
-// src/models/nomina.model.ts
 export interface Nomina {
   id: number;
   idEmpleado: number;
-  nombreEmpleado?: string;
-  salarioBase: number;
-  bonificacion?: number;
-  descuentos?: number;
-  totalPagar: number;
-  fechaGeneracion: string;
   periodo: string;
+  tipoPeriodo?: string;
+  fechaInicio?: string;
+  fechaFin?: string;
+  fechaProcesada?: string;
+  empleado?: string;         // ✅ agregado
+  departamento?: string;     // ✅ agregado
+  puesto?: string;           // ✅ agregado
+  salarioBase: number;
+  totalBonificaciones?: number;
+  totalDescuentos?: number;
+  totalLiquido?: number;     // ✅ coincide con backend
+  estado?: string;
   activo: boolean;
 }
