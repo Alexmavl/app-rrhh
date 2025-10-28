@@ -98,4 +98,17 @@ export const nominaService = {
     const res = await api.post("/nominas/beneficios", data);
     return res.data.data ?? res.data;
   },
+async buscarEmpleados(query: string) {
+    const res = await api.get(`/empleados/buscar`, { params: { q: query } });
+    return res.data; // 🔹 Espera [{ idEmpleado, nombre }]
+  },
+
+
+  /** Listar todos los conceptos activos */
+async listarConceptos(): Promise<any[]> {
+  const res = await api.get("/nominas/conceptos");
+  return res.data?.data ?? [];
+}
+
+  
 };
