@@ -1,158 +1,239 @@
-import React, { useRef } from "react";
-import html2pdf from "html2pdf.js";
+import React, { useEffect } from "react";
+import { Page, Text, View, Document, StyleSheet, pdf, Image } from "@react-pdf/renderer";
+import Swal from "sweetalert2";
 
-interface Props {
-  voucher: any;
-}
-
-/**
- * 🧾 Componente visual del voucher (recibo de nómina)
- * Muestra desglose de conceptos y permite descargar en PDF.
- */
-export const VoucherEmpleado: React.FC<Props> = ({ voucher }) => {
-  const voucherRef = useRef<HTMLDivElement>(null);
-
-  if (!voucher) return null;
-
-  // 🔹 Si el SP devuelve un arreglo, tomamos el primer objeto como encabezado
-  const encabezado = Array.isArray(voucher) ? voucher[0] : voucher;
-
-  // 🔹 Si el SP devuelve detalle en "detalle" o "conceptos"
-  const detalle = encabezado.detalle || encabezado.conceptos || [];
-
-  /** 🧭 Formatear fecha legible */
-  const formatDate = (dateStr?: string) => {
-    if (!dateStr) return "—";
-    const date = new Date(dateStr);
+/* ---------- UTILIDADES ---------- */
+const formatDate = (dateValue?: any): string => {
+  if (!dateValue) return "—";
+  try {
+    const date = new Date(dateValue);
     if (isNaN(date.getTime())) return "—";
     return date.toLocaleDateString("es-GT", {
       day: "2-digit",
       month: "short",
       year: "numeric",
     });
-  };
+  } catch {
+    return "—";
+  }
+};
 
-  /** 📄 Descargar PDF */
-  const handleDownloadPDF = () => {
-    const element = voucherRef.current;
-    if (!element) return;
+const formatQ = (num: any): string => {
+  const value = Number(num);
+  if (isNaN(value)) return "Q0.00";
+  return `Q${value.toLocaleString("es-GT", {
+    minimumFractionDigits: 2,
+    maximumFractionDigits: 2,
+  })}`;
+};
 
-    const opt = {
-      margin: 0.3,
-      filename: `Voucher_${encabezado.empleado}_${encabezado.periodo}.pdf`,
-      image: { type: "jpeg" as const, quality: 0.98 },
-      html2canvas: { scale: 2 },
-      jsPDF: { unit: "in", format: "letter", orientation: "portrait" as const },
-    };
+/* ---------- PLANTILLA PDF ---------- */
+const VoucherPDF = ({ voucher }: { voucher: any }) => {
+  const encabezado = Array.isArray(voucher) ? voucher[0] : voucher;
+  const detalle = encabezado.detalle || encabezado.conceptos || [];
 
-    html2pdf().set(opt).from(element).save();
-  };
+  const styles = StyleSheet.create({
+    page: {
+      padding: 25,
+      fontSize: 8, // más pequeño
+      fontFamily: "Helvetica",
+      backgroundColor: "#fff",
+      height: "50%", // media hoja
+    },
+    header: {
+      flexDirection: "row",
+      justifyContent: "space-between",
+      alignItems: "center",
+      borderBottomWidth: 1.5,
+      borderBottomColor: "#023778",
+      paddingBottom: 6,
+      marginBottom: 10,
+    },
+    logo: { width: 60, height: 45, objectFit: "contain" },
+    titleBox: { textAlign: "right" },
+    title: { fontSize: 14, fontWeight: "bold", color: "#023778" },
+    subtitle: { fontSize: 8, color: "#666" },
+    sectionTitle: {
+      fontSize: 9,
+      fontWeight: "bold",
+      color: "#023778",
+      marginBottom: 6,
+      borderLeftWidth: 3,
+      borderLeftColor: "#023778",
+      paddingLeft: 4,
+    },
+    grid: { flexDirection: "row", flexWrap: "wrap", marginBottom: 6 },
+    gridItem: { width: "50%", marginBottom: 4 },
+    label: { fontSize: 7, color: "#666" },
+    value: { fontSize: 8.5, fontWeight: "bold", color: "#111" },
+    tableHeader: {
+      flexDirection: "row",
+      backgroundColor: "#023778",
+      color: "#FFF",
+      padding: 4,
+      borderRadius: 2,
+    },
+    tableRow: {
+      flexDirection: "row",
+      padding: 4,
+      borderBottomWidth: 0.5,
+      borderBottomColor: "#EEE",
+    },
+    cell: { flex: 1, fontSize: 7 },
+    cellRight: { flex: 1, fontSize: 7, textAlign: "right" },
+    totals: {
+      marginTop: 10,
+      borderTopWidth: 1,
+      borderTopColor: "#CCC",
+      paddingTop: 4,
+    },
+    totalLine: {
+      flexDirection: "row",
+      justifyContent: "space-between",
+      marginVertical: 1.5,
+    },
+    totalBold: { fontWeight: "bold", fontSize: 8.5, color: "#023778" },
+    footer: {
+      textAlign: "center",
+      fontSize: 6.5,
+      color: "#777",
+      marginTop: 10,
+      borderTopWidth: 0.5,
+      borderTopColor: "#CCC",
+      paddingTop: 4,
+    },
+  });
 
   return (
-    <div className="bg-white rounded-xl p-4 shadow-md">
-      {/* Botón de descarga */}
-      <div className="flex justify-end mb-2">
-        <button
-          onClick={handleDownloadPDF}
-          className="bg-blue-600 hover:bg-blue-700 text-white px-3 py-1 rounded-md text-sm"
-        >
-          📄 Descargar PDF
-        </button>
-      </div>
-
-      {/* Contenido imprimible */}
-      <div ref={voucherRef} className="p-4 text-gray-800">
+    <Document>
+      <Page size="LETTER" style={styles.page}>
         {/* Encabezado */}
-        <div className="flex justify-between items-center border-b pb-3 mb-4">
-          <img
-            src="/image/LogotipoUMG.png"
-            alt="Logo"
-            className="h-14 object-contain"
-          />
-          <div className="text-right">
-            <h2 className="text-2xl font-bold text-blue-700">Recibo de Nómina</h2>
-            <p className="text-sm text-gray-500">{encabezado.periodo}</p>
-          </div>
-        </div>
+        <View style={styles.header}>
+          <Image src="/image/LogotipoUMG.png" style={styles.logo} />
+          <View style={styles.titleBox}>
+            <Text style={styles.title}>Recibo de Nómina</Text>
+            <Text style={styles.subtitle}>{encabezado.periodo || "—"}</Text>
+          </View>
+        </View>
 
-        {/* Datos generales */}
-        <div className="grid grid-cols-2 text-sm gap-y-1 mb-4">
-          <p>
-            <b>Empleado:</b> {encabezado.empleado}
-          </p>
-          <p>
-            <b>Puesto:</b> {encabezado.puesto}
-          </p>
-          <p>
-            <b>Departamento:</b> {encabezado.departamento}
-          </p>
-          <p>
-            <b>Periodo:</b> {encabezado.periodo}
-          </p>
-          <p>
-            <b>Del:</b> {formatDate(encabezado.fechaInicio)}
-          </p>
-          <p>
-            <b>Al:</b> {formatDate(encabezado.fechaFin)}
-          </p>
-        </div>
+        {/* Información del empleado */}
+        <Text style={styles.sectionTitle}>Información del Empleado</Text>
+        <View style={styles.grid}>
+          <View style={styles.gridItem}>
+            <Text style={styles.label}>Empleado</Text>
+            <Text style={styles.value}>{encabezado.empleado || "—"}</Text>
+          </View>
+          <View style={styles.gridItem}>
+            <Text style={styles.label}>Puesto</Text>
+            <Text style={styles.value}>{encabezado.puesto || "—"}</Text>
+          </View>
+          <View style={styles.gridItem}>
+            <Text style={styles.label}>Departamento</Text>
+            <Text style={styles.value}>{encabezado.departamento || "—"}</Text>
+          </View>
+          <View style={styles.gridItem}>
+            <Text style={styles.label}>Periodo</Text>
+            <Text style={styles.value}>{encabezado.periodo || "—"}</Text>
+          </View>
+        </View>
 
-        {/* Tabla de conceptos */}
-        <table className="w-full border border-gray-300 text-sm mb-6">
-          <thead className="bg-gray-100 text-left">
-            <tr>
-              <th className="border p-2">Concepto</th>
-              <th className="border p-2">Tipo</th>
-              <th className="border p-2 text-right">Monto (Q)</th>
-            </tr>
-          </thead>
-          <tbody>
-            {detalle.length > 0 ? (
-              detalle.map((d: any, i: number) => (
-                <tr key={i}>
-                  <td className="border p-2">{d.concepto}</td>
-                  <td className="border p-2">{d.tipo}</td>
-                  <td
-                    className={`border p-2 text-right ${
-                      d.tipo === "DEDUCCION" ? "text-red-600" : "text-green-700"
-                    }`}
-                  >
-                    {Number(d.monto).toFixed(2)}
-                  </td>
-                </tr>
-              ))
-            ) : (
-              <tr>
-                <td colSpan={3} className="p-3 text-center text-gray-400">
-                  No hay conceptos registrados.
-                </td>
-              </tr>
-            )}
-          </tbody>
-        </table>
+        {/* Detalle */}
+        <Text style={styles.sectionTitle}>Detalle de Conceptos</Text>
+        <View>
+          <View style={styles.tableHeader}>
+            <Text style={styles.cell}>Concepto</Text>
+            <Text style={styles.cell}>Tipo</Text>
+            <Text style={styles.cellRight}>Monto</Text>
+          </View>
+
+          {detalle.length > 0 ? (
+            detalle.map((d: any, i: number) => (
+              <View key={i} style={styles.tableRow}>
+                <Text style={styles.cell}>{d.concepto || "—"}</Text>
+                <Text style={styles.cell}>{d.tipo || "—"}</Text>
+                <Text style={styles.cellRight}>{formatQ(d.monto)}</Text>
+              </View>
+            ))
+          ) : (
+            <Text style={{ textAlign: "center", color: "#999", marginTop: 4 }}>
+              No hay conceptos registrados
+            </Text>
+          )}
+        </View>
 
         {/* Totales */}
-        <div className="text-right text-sm space-y-1">
-          <p>
-            <b>Salario Base:</b> Q{encabezado.salarioBase?.toFixed(2)}
-          </p>
-          <p>
-            <b>Total Bonificaciones:</b> Q{encabezado.totalBonificaciones?.toFixed(2)}
-          </p>
-          <p>
-            <b>Total Deducciones:</b> Q{encabezado.totalDescuentos?.toFixed(2)}
-          </p>
-          <p className="text-lg font-bold text-green-700">
-            <b>Total Líquido:</b> Q{encabezado.totalLiquido?.toFixed(2)}
-          </p>
-        </div>
+        <View style={styles.totals}>
+          <View style={styles.totalLine}>
+            <Text>Salario Base:</Text>
+            <Text>{formatQ(encabezado.salarioBase)}</Text>
+          </View>
+          <View style={styles.totalLine}>
+            <Text>Bonificaciones:</Text>
+            <Text>+{formatQ(encabezado.totalBonificaciones)}</Text>
+          </View>
+          <View style={styles.totalLine}>
+            <Text>Deducciones:</Text>
+            <Text>-{formatQ(encabezado.totalDescuentos)}</Text>
+          </View>
+          <View style={styles.totalLine}>
+            <Text style={styles.totalBold}>Total Líquido:</Text>
+            <Text style={styles.totalBold}>{formatQ(encabezado.totalLiquido)}</Text>
+          </View>
+        </View>
 
-        {/* Pie de página */}
-        <div className="mt-8 text-center text-gray-500 text-xs">
-          <p>Este documento es una constancia de pago generada electrónicamente.</p>
-          <p>© {new Date().getFullYear()} - Universidad Mariano Gálvez de Guatemala</p>
-        </div>
-      </div>
-    </div>
+        {/* Footer */}
+        <View style={styles.footer}>
+          <Text>Documento generado electrónicamente</Text>
+          <Text>© {new Date().getFullYear()} Universidad Mariano Gálvez</Text>
+        </View>
+      </Page>
+    </Document>
   );
+};
+
+/* ---------- COMPONENTE PRINCIPAL SIN MODAL ---------- */
+export const VoucherEmpleado = ({ voucher }: { voucher: any }) => {
+  useEffect(() => {
+    const generarPDF = async () => {
+      Swal.fire({
+        title: "Generando PDF...",
+        text: "Por favor espera un momento",
+        allowOutsideClick: false,
+        didOpen: () => Swal.showLoading(),
+      });
+
+      try {
+        const blob = await pdf(<VoucherPDF voucher={voucher} />).toBlob();
+        const url = URL.createObjectURL(blob);
+
+        const encabezado = Array.isArray(voucher) ? voucher[0] : voucher;
+        const nombreArchivo = `Voucher_${encabezado.empleado?.replace(/\s+/g, "_") || "empleado"}_${encabezado.periodo?.replace(/\s+/g, "_") || "periodo"}.pdf`;
+
+        Swal.fire({
+          title: " Voucher generado",
+          html: `
+            <p style="margin-bottom: 10px; color: #555;">Tu comprobante está listo para descargar.</p>
+            <a href="${url}" download="${nombreArchivo}"
+               style="display:inline-block; background:#023778; color:white; padding:10px 20px; border-radius:6px; text-decoration:none; font-weight:600;">
+               📄 Descargar PDF
+            </a>
+          `,
+          icon: "success",
+          showConfirmButton: false,
+          timer: 25000,
+        });
+      } catch (error) {
+        console.error("Error al generar PDF:", error);
+        Swal.fire({
+          title: "Error",
+          text: "No se pudo generar el PDF. Intenta nuevamente.",
+          icon: "error",
+        });
+      }
+    };
+
+    generarPDF();
+  }, [voucher]);
+
+  return null; // No renderiza nada visualmente
 };

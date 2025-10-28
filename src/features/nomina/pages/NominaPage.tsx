@@ -8,20 +8,34 @@ import { LoadingSpinner } from "../../../shared/LoadingSpinner";
 import { NominaForm } from "../components/NominaForm";
 import { BeneficioModal } from "../components/BeneficioModal";
 import { nominaService } from "../../../services/nomina.service";
-import { swalSuccess, swalError } from "../../../utils/swalConfig";
+import { swalSuccess, swalError, swalConfirm } from "../../../utils/swalConfig";
+import {
+  DollarSign,
+  Plus,
+  Gift,
+  Eye,
+  Calendar,
+  Users,
+  TrendingUp,
+  Filter,
+  CheckCircle,
+  XCircle,
+  ChevronLeft,
+  ChevronRight,
+} from "lucide-react";
 
-/**
- *  Página principal de Nóminas
- * Muestra una fila por periodo (nóminas agrupadas).
- */
 export function NominaPage(): React.JSX.Element {
   const [nominas, setNominas] = useState<any[]>([]);
+  const [filtroEstado, setFiltroEstado] = useState("Todas");
   const [showForm, setShowForm] = useState(false);
   const [showBeneficio, setShowBeneficio] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
+  const [paginaActual, setPaginaActual] = useState(1);
+  const itemsPorPagina = 10;
+
   const navigate = useNavigate();
 
-  /**  Función utilitaria para formato de fecha (dd/mm/yyyy) */
+  /* Formatear fecha */
   const formatDate = (date: string | Date | null) => {
     if (!date) return "—";
     try {
@@ -35,15 +49,15 @@ export function NominaPage(): React.JSX.Element {
     }
   };
 
-  /**  Cargar nóminas agrupadas por periodo */
+  /* Cargar nóminas */
   const fetchNominas = async () => {
     try {
       setIsLoading(true);
-      const data = await nominaService.listarResumen(); //  llama al nuevo endpoint
+      const data = await nominaService.listarResumen();
       setNominas(Array.isArray(data) ? data : []);
     } catch (err) {
       console.error(err);
-      swalError("Error al cargar nóminas");
+      await swalError("Error", "No se pudieron cargar las nóminas");
     } finally {
       setIsLoading(false);
     }
@@ -53,119 +67,271 @@ export function NominaPage(): React.JSX.Element {
     fetchNominas();
   }, []);
 
-  const handleVerDetalle = (periodo: string) => {
-  const safePeriodo = encodeURIComponent(periodo);
-  navigate(`/nomina/detalle/${safePeriodo}`);
-};
-  /**  Columnas de la tabla principal (resumen global por periodo) */
+  /* Ver detalle */
+  const handleVerDetalle = (periodo: string, estado: string) => {
+    if (estado !== "Activa") return; // 🚫 Bloquear acceso si está inactiva
+    const safePeriodo = encodeURIComponent(periodo);
+    navigate(`/nomina/detalle/${safePeriodo}`);
+  };
+
+  /* Activar / Inactivar nómina */
+  const handleToggleActivo = async (idNomina: number, estadoActual: string) => {
+    try {
+      const confirmar = await swalConfirm(
+        `¿Deseas ${estadoActual === "Activa" ? "inactivar" : "activar"} esta nómina?`,
+        "Esta acción cambiará el estado del periodo seleccionado.",
+        estadoActual === "Activa" ? "Sí, inactivar" : "Sí, activar",
+        "Cancelar"
+      );
+      if (!confirmar.isConfirmed) return;
+
+      setIsLoading(true);
+      await nominaService.toggleActivo(idNomina);
+
+      await swalSuccess(
+        `Nómina ${estadoActual === "Activa" ? "inactivada" : "activada"}`,
+        "El estado se actualizó correctamente."
+      );
+      await fetchNominas();
+    } catch (err) {
+      console.error(err);
+      await swalError("Error", "No se pudo cambiar el estado de la nómina");
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  /* Filtro de estado */
+  const nominasFiltradas =
+    filtroEstado === "Todas"
+      ? nominas
+      : nominas.filter((n) => n.estado === filtroEstado);
+
+  /* 🔢 Paginación */
+  const totalPaginas = Math.ceil(nominasFiltradas.length / itemsPorPagina);
+  const inicio = (paginaActual - 1) * itemsPorPagina;
+  const fin = inicio + itemsPorPagina;
+  const nominasPaginadas = nominasFiltradas.slice(inicio, fin);
+
+  const cambiarPagina = (pagina: number) => {
+    if (pagina >= 1 && pagina <= totalPaginas) setPaginaActual(pagina);
+  };
+
+  /* Columnas */
   const columns = [
-    { key: "periodo", label: "Periodo" },
-    { key: "tipoPeriodo", label: "Tipo" },
+    { key: "periodo", label: "Periodo", width: "150px" },
+    { key: "tipoPeriodo", label: "Tipo", width: "120px" },
     {
       key: "fechaInicio",
       label: "Inicio",
+      width: "120px",
       render: (v: any) => formatDate(v),
     },
     {
       key: "fechaFin",
       label: "Fin",
+      width: "120px",
       render: (v: any) => formatDate(v),
     },
     {
       key: "fechaProcesada",
       label: "Procesada",
+      width: "120px",
       render: (v: any) => formatDate(v),
     },
     {
       key: "totalEmpleados",
       label: "Empleados",
+      width: "100px",
       align: "center" as const,
     },
     {
       key: "totalLiquidoGlobal",
-      label: "Total Nómina (Q)",
+      label: "Total (Q)",
+      width: "150px",
       align: "right" as const,
-      render: (v: any) => `Q${Number(v || 0).toFixed(2)}`,
+      render: (v: any) => (
+        <span className="font-semibold text-gray-900">
+          Q
+          {Number(v || 0).toLocaleString("es-GT", {
+            minimumFractionDigits: 2,
+            maximumFractionDigits: 2,
+          })}
+        </span>
+      ),
     },
     {
       key: "estado",
       label: "Estado",
-      render: (v: any) =>
-        v === "Activa" ? (
-          <span className="text-green-700 font-semibold">Activa</span>
-        ) : (
-          <span className="text-gray-500">Inactiva</span>
-        ),
+      width: "120px",
+      align: "center" as const,
+      render: (v: any) => (
+        <span
+          className={`px-2 py-1 rounded-full text-xs font-semibold inline-flex items-center gap-1 ${
+            v === "Activa"
+              ? "bg-green-100 text-green-700"
+              : "bg-gray-100 text-gray-600"
+          }`}
+        >
+          {v === "Activa" ? <CheckCircle size={12} /> : <XCircle size={12} />}
+          {v}
+        </span>
+      ),
     },
     {
       key: "acciones",
       label: "Acciones",
+      width: "240px",
       align: "center" as const,
       render: (_: any, row: any) => (
         <div className="flex gap-2 justify-center">
-        <Button size="sm" onClick={() => handleVerDetalle(row.periodo)}>
-  🔍 Detalle
-</Button>
-
+          {/* 🚫 Desactivar el botón si la nómina está inactiva */}
+          <Button
+            size="sm"
+            variant="info"
+            icon={<Eye size={14} />}
+            onClick={() => handleVerDetalle(row.periodo, row.estado)}
+            disabled={row.estado !== "Activa"}
+            className={row.estado !== "Activa" ? "opacity-50 cursor-not-allowed" : ""}
+          >
+            Detalle
+          </Button>
+          <Button
+            size="sm"
+            variant={row.estado === "Activa" ? "danger" : "success"}
+            icon={
+              row.estado === "Activa" ? <XCircle size={14} /> : <CheckCircle size={14} />
+            }
+            onClick={() => handleToggleActivo(row.idNomina ?? row.id, row.estado)}
+          >
+            {row.estado === "Activa" ? "Inactivar" : "Activar"}
+          </Button>
         </div>
       ),
     },
   ];
 
-  if (isLoading) return <LoadingSpinner />;
+  /* Totales */
+  const totalEmpleados = nominasFiltradas.reduce(
+    (sum, n) => sum + (n.totalEmpleados || 0),
+    0
+  );
+  const totalNomina = nominasFiltradas.reduce(
+    (sum, n) => sum + (n.totalLiquidoGlobal || 0),
+    0
+  );
+
+  if (isLoading) {
+    return <LoadingSpinner fullScreen text="Cargando nóminas..." />;
+  }
 
   return (
-    <div className="p-6 space-y-4">
-      {/*  Encabezado */}
-      <div className="flex justify-between items-center mb-2">
-        <h1 className="text-2xl font-semibold text-gray-800">
-          Nóminas procesadas por periodo
-        </h1>
-        <div className="flex gap-2">
-          <Button variant="secondary" onClick={() => setShowBeneficio(true)}>
-            + Beneficio global
-          </Button>
-          <Button onClick={() => setShowForm(true)}>+ Nueva Nómina</Button>
-        </div>
-      </div>
-
-      {/* Tabla de nóminas resumidas */}
+    <div className="space-y-6 animate-fadeIn">
+      {/* Header */}
       <Card>
-        <Table
-          data={nominas}
-          columns={columns}
-          loading={isLoading}
-          emptyMessage="No hay nóminas registradas"
-        />
+        <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
+          <div className="flex items-center gap-3">
+            <div className="p-2 rounded-lg" style={{ backgroundColor: "#023778" }}>
+              <DollarSign size={24} className="text-white" />
+            </div>
+            <div>
+              <h1 className="text-2xl font-bold text-gray-900">Gestión de Nóminas</h1>
+              <p className="text-sm text-gray-600">
+                Revisa, activa o inactiva nóminas por periodo
+              </p>
+            </div>
+          </div>
+          <div className="flex gap-2 w-full md:w-auto">
+            <Button
+              variant="secondary"
+              icon={<Gift size={18} />}
+              onClick={() => setShowBeneficio(true)}
+              fullWidth
+              className="md:w-auto"
+            >
+              Beneficio Global
+            </Button>
+            <Button
+              icon={<Plus size={18} />}
+              onClick={() => setShowForm(true)}
+              fullWidth
+              className="md:w-auto"
+            >
+              Nueva Nómina
+            </Button>
+          </div>
+        </div>
       </Card>
 
-      {/* Modal: Generar nueva nómina */}
-      {showForm && (
-        <Modal
-          show={true}
-          title="Procesar Nómina"
-          onClose={() => setShowForm(false)}
-        >
-          <NominaForm
-            onClose={() => setShowForm(false)}
-            onSuccess={fetchNominas}
-          />
-        </Modal>
-      )}
+      {/* Tabla */}
+      <Card padding="none">
+        {nominasPaginadas.length > 0 ? (
+          <>
+            <Table
+              data={nominasPaginadas}
+              columns={columns}
+              loading={isLoading}
+              striped
+              hover
+            />
 
-      {/* Modal: Registrar beneficio global */}
-      {showBeneficio && (
-        <Modal
-          show={true}
-          title="Registrar Beneficio o Descuento"
+            {/* 🔢 Controles de paginación */}
+            <div className="flex justify-between items-center p-4 text-sm text-gray-600">
+              <span>
+                Página {paginaActual} de {totalPaginas} — Mostrando {itemsPorPagina} por página
+              </span>
+              <div className="flex gap-2">
+                <Button
+                  size="sm"
+                  variant="secondary"
+                  onClick={() => cambiarPagina(paginaActual - 1)}
+                  disabled={paginaActual === 1}
+                  icon={<ChevronLeft size={16} />}
+                >
+                  Anterior
+                </Button>
+                <Button
+                  size="sm"
+                  variant="secondary"
+                  onClick={() => cambiarPagina(paginaActual + 1)}
+                  disabled={paginaActual === totalPaginas}
+                  icon={<ChevronRight size={16} />}
+                >
+                  Siguiente
+                </Button>
+              </div>
+            </div>
+          </>
+        ) : (
+          <div className="text-center py-12 text-gray-500">No hay nóminas disponibles.</div>
+        )}
+      </Card>
+
+      {/* Modales */}
+      <Modal show={showForm} title="Procesar Nómina" onClose={() => setShowForm(false)} size="lg">
+        <NominaForm
+          onClose={() => setShowForm(false)}
+          onSuccess={() => {
+            fetchNominas();
+            setShowForm(false);
+          }}
+        />
+      </Modal>
+
+      <Modal
+        show={showBeneficio}
+        title="Registrar Beneficio o Descuento"
+        onClose={() => setShowBeneficio(false)}
+        size="md"
+      >
+        <BeneficioModal
           onClose={() => setShowBeneficio(false)}
-        >
-          <BeneficioModal
-            onClose={() => setShowBeneficio(false)}
-            onSuccess={fetchNominas}
-          />
-        </Modal>
-      )}
+          onSuccess={() => {
+            fetchNominas();
+            setShowBeneficio(false);
+          }}
+        />
+      </Modal>
     </div>
   );
 }
