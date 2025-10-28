@@ -4,77 +4,132 @@ import { z } from "zod";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { Input } from "../../../components/ui/Input";
 import { Button } from "../../../components/ui/Button";
+import { Card } from "../../../components/ui/Card";
 import { nominaService } from "../../../services/nomina.service";
 import { empleadosService } from "../../../services/empleados.service";
 import { swalSuccess, swalError } from "../../../utils/swalConfig";
-import { User, Tag, DollarSign, Type } from "lucide-react";
+import {
+  User,
+  Tag,
+  DollarSign,
+  Type,
+  Calendar,
+  AlertCircle,
+  X,
+  Save,
+} from "lucide-react";
 
-/** ✅ Validación con Zod */
+/* Meses válidos */
+const mesesValidos = [
+  "Enero", "Febrero", "Marzo", "Abril", "Mayo", "Junio",
+  "Julio", "Agosto", "Septiembre", "Octubre", "Noviembre", "Diciembre",
+];
+
+/* ✅ Esquema de validación corregido */
 const schema = z.object({
-  idEmpleado: z.coerce.number().positive("Debe ingresar un ID válido"),
-  idConcepto: z.coerce.number().positive("Debe seleccionar un concepto"),
-  monto: z.coerce.number().min(0.01, "Debe ingresar un monto válido"),
+  idEmpleado: z
+    .string()
+    .min(1, "Debe ingresar el ID del empleado")
+    .transform((val) => Number(val))
+    .refine((val) => !isNaN(val) && val > 0, {
+      message: "Debe ingresar un ID válido",
+    }),
+  
+  idConcepto: z
+    .string()
+    .min(1, "Debe seleccionar un concepto")
+    .transform((val) => Number(val))
+    .refine((val) => !isNaN(val) && val > 0, {
+      message: "Debe seleccionar un concepto válido",
+    }),
+  
+  monto: z
+    .string()
+    .min(1, "Debe ingresar un monto")
+    .transform((val) => Number(val))
+    .refine((val) => !isNaN(val) && val >= 0.01, {
+      message: "Debe ingresar un monto válido mayor a 0",
+    }),
+  
   tipo: z.enum(["BONIFICACION", "DEDUCCION"]),
-  periodo: z.string().optional(),
+  
+  mes: z.string().min(1, "Debe seleccionar un mes válido").refine(
+    (v) => mesesValidos.includes(v),
+    { message: "Debe seleccionar un mes válido" }
+  ),
+  
+  anio: z
+    .number()
+    .min(1900, { message: "El año no puede ser menor a 1900" })
+    .max(2100, { message: "El año no puede ser mayor a 2100" }),
 });
 
 type FormData = z.infer<typeof schema>;
+
+interface Concepto {
+  id: number;
+  nombre: string;
+  tipo: string;
+  montoFijo?: number | null;
+  porcentaje?: number | null;
+}
 
 interface Props {
   onClose: () => void;
   onSuccess: () => void;
 }
 
-/**
- * 💰 Formulario para registrar beneficios o deducciones
- */
+/** 💰 Modal de registro de bonificaciones o deducciones */
 export function BeneficioModal({ onClose, onSuccess }: Props): React.JSX.Element {
+  const currentYear = new Date().getFullYear();
+
   const {
     register,
     handleSubmit,
-    setValue,
     watch,
     reset,
     formState: { errors, isSubmitting },
   } = useForm<FormData>({
     resolver: zodResolver(schema),
-    defaultValues: { tipo: "BONIFICACION" },
+    mode: "onSubmit",
+    defaultValues: {
+      tipo: "BONIFICACION",
+      mes: "",
+      anio: currentYear,
+    },
   });
 
-  const [conceptos, setConceptos] = useState<
-    { id: number; nombre: string; tipo: string; montoFijo?: number | null; porcentaje?: number | null }[]
-  >([]);
+  const [conceptos, setConceptos] = useState<Concepto[]>([]);
   const [loadingConceptos, setLoadingConceptos] = useState(false);
   const [empleadoNombre, setEmpleadoNombre] = useState<string | null>(null);
-  const idEmpleado = watch("idEmpleado");
 
-  /** 🔹 Buscar empleado por ID */
-  const handleBuscarEmpleado = async (id: number) => {
-    if (!id || id <= 0) {
-      setEmpleadoNombre(null);
-      return;
-    }
-    try {
-      const empleado = await empleadosService.obtenerPorId(id);
-      if (empleado?.nombres) {
-        setEmpleadoNombre(`${empleado.nombres} ${empleado.apellidos}`);
-      } else {
+  const idEmpleado = watch("idEmpleado");
+  const mes = watch("mes");
+  const anio = watch("anio");
+  const periodo = mes && anio ? `${mes} ${anio}` : "";
+
+  /* 🔍 Buscar empleado */
+  useEffect(() => {
+    const buscarEmpleado = async () => {
+      if (!idEmpleado) {
+        setEmpleadoNombre(null);
+        return;
+      }
+      try {
+        const empleado = await empleadosService.obtenerPorId(Number(idEmpleado));
+        if (empleado?.nombres) {
+          setEmpleadoNombre(`${empleado.nombres} ${empleado.apellidos}`);
+        } else {
+          setEmpleadoNombre("No encontrado");
+        }
+      } catch {
         setEmpleadoNombre("No encontrado");
       }
-    } catch {
-      setEmpleadoNombre("No encontrado");
-    }
-  };
-
-  useEffect(() => {
-    if (idEmpleado && !isNaN(Number(idEmpleado))) {
-      handleBuscarEmpleado(Number(idEmpleado));
-    } else {
-      setEmpleadoNombre(null);
-    }
+    };
+    buscarEmpleado();
   }, [idEmpleado]);
 
-  /** 🔹 Cargar conceptos desde el backend */
+  /* 📜 Cargar conceptos */
   useEffect(() => {
     const cargarConceptos = async () => {
       try {
@@ -90,10 +145,11 @@ export function BeneficioModal({ onClose, onSuccess }: Props): React.JSX.Element
     cargarConceptos();
   }, []);
 
-  /** 🔹 Enviar formulario */
+  /* 💾 Enviar formulario */
   const onSubmit: SubmitHandler<FormData> = async (data) => {
     try {
-      await nominaService.registrarBeneficio(data);
+      const periodo = `${data.mes} ${data.anio}`;
+      await nominaService.registrarBeneficio({ ...data, periodo });
       await swalSuccess(
         `✅ ${data.tipo === "BONIFICACION" ? "Bonificación" : "Descuento"} registrado correctamente`
       );
@@ -105,30 +161,33 @@ export function BeneficioModal({ onClose, onSuccess }: Props): React.JSX.Element
     }
   };
 
-  /** 🧩 Vista del formulario */
   return (
-    <form
-      onSubmit={handleSubmit(onSubmit)}
-      className="flex flex-col gap-4 p-4 bg-white rounded-xl shadow-md"
-    >
-      <h2 className="text-lg font-semibold text-blue-700 mb-2">
-        Registrar Beneficio / Descuento
-      </h2>
-
-      {/* 🔹 Empleado por ID */}
-      <div>
-        <label className="block text-sm font-medium text-gray-700 mb-1">
-          ID del Empleado
-        </label>
-        <div className="flex items-center gap-2">
-          <User size={18} className="text-gray-400" />
-          <input
-            type="number"
-            placeholder="Ej: 12"
-            className="w-full border border-gray-300 rounded-md p-2 text-sm"
-            {...register("idEmpleado", { valueAsNumber: true })}
-          />
+    <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
+      {/* ENCABEZADO */}
+      <Card variant="filled">
+        <div className="flex items-center gap-2 mb-2">
+          <DollarSign size={18} className="text-white" />
+          <h3 className="font-semibold text-white">Registrar Beneficio / Descuento</h3>
         </div>
+        <p className="text-white/90 text-sm">
+          Asigna una bonificación o deducción a un empleado y especifica el periodo correspondiente
+        </p>
+      </Card>
+
+      {/* EMPLEADO */}
+      <Card>
+        <div className="flex items-center gap-2 mb-3">
+          <User size={18} className="text-gray-600" />
+          <h4 className="font-semibold text-gray-900">Empleado</h4>
+        </div>
+        <Input
+          label="ID del Empleado"
+          type="number"
+          placeholder="Ej: 12"
+          leftIcon={<User size={18} />}
+          {...register("idEmpleado")}
+          error={errors.idEmpleado?.message}
+        />
         {empleadoNombre && (
           <p
             className={`mt-1 text-sm ${
@@ -140,90 +199,148 @@ export function BeneficioModal({ onClose, onSuccess }: Props): React.JSX.Element
             {empleadoNombre}
           </p>
         )}
-        {errors.idEmpleado && (
-          <p className="text-red-600 text-sm mt-1">
-            {errors.idEmpleado.message}
-          </p>
-        )}
-      </div>
+      </Card>
 
-      {/* 🔹 Concepto */}
-      <div>
-        <label className="block text-sm font-medium text-gray-700 mb-1">
-          Concepto
-        </label>
-        <div className="flex items-center gap-2">
-          <Tag size={18} className="text-gray-400" />
-          <select
-            {...register("idConcepto", { valueAsNumber: true })}
-            className="w-full border border-gray-300 rounded-md p-2 text-sm"
-          >
-            <option value="">Seleccione un concepto...</option>
-            {loadingConceptos ? (
-              <option>Cargando...</option>
-            ) : (
-              conceptos.map((c) => (
-                <option key={c.id} value={c.id}>
-                  {c.nombre} ({c.tipo}){" "}
-                  {c.montoFijo
-                    ? `(Q${Number(c.montoFijo).toFixed(2)})`
-                    : c.porcentaje
-                    ? `(${c.porcentaje}%)`
-                    : ""}
-                </option>
-              ))
-            )}
-          </select>
+      {/* CONCEPTO */}
+      <Card>
+        <div className="flex items-center gap-2 mb-3">
+          <Tag size={18} className="text-gray-600" />
+          <h4 className="font-semibold text-gray-900">Concepto</h4>
         </div>
+        <select
+          {...register("idConcepto")}
+          className="w-full rounded-lg border-2 border-gray-200 pl-3 pr-3 py-2.5 text-sm focus:ring-2 focus:ring-blue-100 focus:border-[#023778] focus:outline-none transition-all"
+        >
+          <option value="">Seleccione un concepto...</option>
+          {loadingConceptos ? (
+            <option>Cargando...</option>
+          ) : (
+            conceptos.map((c: Concepto) => (
+              <option key={c.id} value={c.id}>
+                {c.nombre} ({c.tipo}){" "}
+                {c.montoFijo
+                  ? `(Q${Number(c.montoFijo).toFixed(2)})`
+                  : c.porcentaje
+                  ? `(${c.porcentaje}%)`
+                  : ""}
+              </option>
+            ))
+          )}
+        </select>
         {errors.idConcepto && (
-          <p className="text-red-600 text-sm mt-1">
-            {errors.idConcepto.message}
+          <p className="text-red-600 text-sm mt-1 flex items-center gap-1">
+            <AlertCircle size={14} /> {errors.idConcepto.message}
           </p>
         )}
-      </div>
+      </Card>
 
-      {/* 🔹 Monto */}
-      <Input
-        label="Monto (Q)"
-        type="number"
-        step="0.01"
-        placeholder="Ej: 250.00"
-        leftIcon={<DollarSign size={18} />}
-        {...register("monto", { valueAsNumber: true })}
-        error={errors.monto?.message}
-      />
+      {/* MONTO Y TIPO */}
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <Input
+          label="Monto (Q)"
+          type="number"
+          step="0.01"
+          placeholder="Ej: 250.00"
+          leftIcon={<DollarSign size={18} />}
+          {...register("monto")}
+          error={errors.monto?.message}
+        />
 
-      {/* 🔹 Tipo */}
-      <div>
-        <label className="block text-sm font-medium text-gray-700 mb-1">
-          Tipo de beneficio
-        </label>
-        <div className="flex items-center gap-2">
-          <Type size={18} className="text-gray-400" />
-          <select
-            {...register("tipo")}
-            className="w-full border border-gray-300 rounded-md p-2 text-sm"
-          >
-            <option value="BONIFICACION">Bonificación</option>
-            <option value="DEDUCCION">Descuento</option>
-          </select>
+        <div>
+          <label className="block text-sm font-semibold text-gray-700 mb-2">
+            Tipo de beneficio
+          </label>
+          <div className="relative">
+            <div className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none">
+              <Type size={18} />
+            </div>
+            <select
+              {...register("tipo")}
+              className="w-full rounded-lg border-2 border-gray-200 pl-10 pr-3 py-2.5 text-sm focus:ring-2 focus:ring-blue-100 focus:border-[#023778] focus:outline-none transition-all"
+            >
+              <option value="BONIFICACION">Bonificación</option>
+              <option value="DEDUCCION">Descuento</option>
+            </select>
+          </div>
         </div>
       </div>
 
-      {/* 🔹 Periodo */}
-      <Input
-        label="Periodo (opcional)"
-        placeholder="Ej: Octubre 2025"
-        {...register("periodo")}
-      />
+      {/* PERIODO */}
+      <Card>
+        <div className="flex items-center gap-2 mb-3">
+          <Calendar size={18} className="text-gray-600" />
+          <h4 className="font-semibold text-gray-900">Periodo</h4>
+        </div>
 
-      {/* 🔹 Botones */}
-      <div className="flex justify-end gap-2 mt-4 pt-3 border-t">
-        <Button type="button" variant="secondary" onClick={onClose}>
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div>
+            <label className="block text-sm font-semibold text-gray-700 mb-2">
+              Mes <span className="text-red-500">*</span>
+            </label>
+            <div className="relative">
+              <div className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none">
+                <Calendar size={18} />
+              </div>
+              <select
+                className="w-full rounded-lg border-2 border-gray-200 pl-10 pr-3 py-2.5 text-sm focus:ring-2 focus:ring-blue-100 focus:border-[#023778] focus:outline-none transition-all"
+                {...register("mes")}
+              >
+                <option value="">Seleccione un mes...</option>
+                {mesesValidos.map((m) => (
+                  <option key={m} value={m}>
+                    {m}
+                  </option>
+                ))}
+              </select>
+            </div>
+            {errors.mes && (
+              <p className="text-red-500 text-sm mt-1.5 flex items-center gap-1">
+                <AlertCircle size={14} /> {errors.mes.message}
+              </p>
+            )}
+          </div>
+
+          <Input
+            label="Año"
+            type="number"
+            placeholder="Ej: 2025"
+            leftIcon={<Calendar size={18} />}
+            {...register("anio", { valueAsNumber: true })}
+            error={errors.anio?.message}
+            required
+          />
+        </div>
+      </Card>
+
+      {/* RESUMEN */}
+      {periodo && (
+        <Card variant="outlined">
+          <div className="flex items-start gap-3">
+            <div className="p-2 bg-blue-100 rounded-lg flex-shrink-0">
+              <Calendar size={20} className="text-blue-600" />
+            </div>
+            <div className="flex-1">
+              <p className="text-sm font-semibold text-gray-900 mb-1">
+                Periodo seleccionado
+              </p>
+              <p className="text-lg font-bold" style={{ color: "#023778" }}>
+                {periodo}
+              </p>
+              <p className="text-sm text-gray-600 mt-1">
+                Se registrará este beneficio para el periodo indicado.
+              </p>
+            </div>
+          </div>
+        </Card>
+      )}
+
+      {/* BOTONES */}
+      <div className="flex justify-end gap-2 pt-4 border-t">
+        <Button type="button" variant="secondary" icon={<X size={18} />} onClick={onClose}>
           Cancelar
         </Button>
-        <Button type="submit" disabled={isSubmitting}>
-          {isSubmitting ? "Registrando..." : "Guardar"}
+        <Button type="submit" icon={<Save size={18} />} disabled={isSubmitting}>
+          {isSubmitting ? "Guardando..." : "Guardar"}
         </Button>
       </div>
     </form>
