@@ -9,6 +9,7 @@ import LoginPage from "../features/auth/pages/LoginPage";
 import InicioPage from "../features/inicio/pages/InicioPage";
 import PrivateRoute from "./PrivateRoute";
 import { MainLayout } from "../components/layout/MainLayout";
+import UsuariosPage from "../features/usuarios/pages/UsuariosPage";
 
 export default function AppRouter() {
   return (
@@ -34,7 +35,7 @@ export default function AppRouter() {
         <Route path="/puestos" element={<PuestosPage />} />
         <Route path="/nomina" element={<NominaPage />} />
        <Route path="/nomina/detalle/:periodo" element={<NominaDetallePage />} />
-
+       <Route path="/usuarios" element={<UsuariosPage />} />
         <Route path="/reportes" element={<ReportesPage />} />
       </Route>
 
