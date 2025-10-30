@@ -13,20 +13,20 @@ import {
   Briefcase,
   Menu,
   X,
-  UserCircle, //  Nuevo icono
+  UserCircle,
+  ShieldCheck, // 🧩 Nuevo icono para Usuarios
 } from "lucide-react";
 
 export const Navbar = () => {
   const auth = useContext(AuthContext);
   const navigate = useNavigate();
   const location = useLocation();
-  
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
 
   if (!auth) return null;
-
   const { user, logout } = auth;
 
+  // 🔹 Menú principal
   const menuItems = [
     { to: "/empleados", label: "Empleados", icon: <Users size={20} /> },
     { to: "/departamentos", label: "Departamentos", icon: <Building2 size={20} /> },
@@ -35,9 +35,16 @@ export const Navbar = () => {
     { to: "/reportes", label: "Reportes", icon: <BarChart2 size={20} /> },
   ];
 
-  const handleLinkClick = () => {
-    setIsMobileMenuOpen(false);
-  };
+  // 🧩 Agregar módulo Usuarios solo para Admin o RRHH
+  if (user && (user.rol === "Admin" || user.rol === "RRHH")) {
+    menuItems.push({
+      to: "/usuarios",
+      label: "Usuarios",
+      icon: <ShieldCheck size={20} />,
+    });
+  }
+
+  const handleLinkClick = () => setIsMobileMenuOpen(false);
 
   return (
     <>
@@ -46,7 +53,7 @@ export const Navbar = () => {
                    text-white transition-colors duration-300 relative z-50"
         style={{ backgroundColor: "#023778" }}
       >
-        {/*  Logo / Inicio */}
+        {/* Logo */}
         <h1
           onClick={() => navigate("/inicio")}
           className="font-bold text-lg md:text-xl cursor-pointer hover:opacity-90 
@@ -57,7 +64,7 @@ export const Navbar = () => {
           <span className="sm:hidden">RRHH</span>
         </h1>
 
-        {/* 🔹 Menú Desktop (oculto en móvil) */}
+        {/* 🔹 Menú Desktop */}
         {user && (
           <div className="hidden lg:flex items-center gap-6 text-sm font-medium">
             {menuItems.map((item) => {
@@ -79,11 +86,10 @@ export const Navbar = () => {
           </div>
         )}
 
-        {/*  Usuario y Logout (Desktop) - MEJORADO */}
+        {/* Usuario y Logout Desktop */}
         <div className="hidden lg:flex items-center gap-3">
           {user ? (
             <>
-              {/* Información del usuario mejorada */}
               <div className="flex items-center gap-2 bg-white/10 px-3 py-2 rounded-lg">
                 <UserCircle size={24} className="text-yellow-300" />
                 <div className="flex flex-col">
@@ -95,7 +101,7 @@ export const Navbar = () => {
                   </span>
                 </div>
               </div>
-              
+
               <button
                 onClick={logout}
                 className="flex items-center gap-2 px-3 py-2 rounded-lg text-sm 
@@ -119,7 +125,7 @@ export const Navbar = () => {
           )}
         </div>
 
-        {/*  Botón Hamburguesa (visible solo en tablet y móvil) */}
+        {/* Botón hamburguesa */}
         {user && (
           <button
             onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
@@ -131,7 +137,7 @@ export const Navbar = () => {
           </button>
         )}
 
-        {/*  Login button para móvil cuando no hay usuario */}
+        {/* Login botón móvil */}
         {!user && (
           <button
             onClick={() => navigate("/login")}
@@ -145,11 +151,10 @@ export const Navbar = () => {
         )}
       </nav>
 
-      {/*  Menú Móvil con Framer Motion */}
+      {/* 🔹 Menú móvil con animación */}
       <AnimatePresence>
         {isMobileMenuOpen && user && (
           <>
-            {/* Overlay oscuro */}
             <motion.div
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
@@ -159,7 +164,6 @@ export const Navbar = () => {
               onClick={() => setIsMobileMenuOpen(false)}
             />
 
-            {/* Menú lateral deslizable */}
             <motion.div
               initial={{ x: "100%" }}
               animate={{ x: 0 }}
@@ -169,7 +173,7 @@ export const Navbar = () => {
                          lg:hidden overflow-y-auto"
               style={{ backgroundColor: "#023778" }}
             >
-              {/* Header del menú móvil */}
+              {/* Header menú móvil */}
               <div className="p-6 border-b border-white/20">
                 <div className="flex items-center justify-between mb-4">
                   <div className="flex items-center gap-2 text-white">
@@ -177,15 +181,18 @@ export const Navbar = () => {
                     <span className="font-bold text-lg">Sistema RRHH</span>
                   </div>
                   <button
-                    onClick={() => setIsMobileMenuOpen(false)}
-                    className="text-white p-2 hover:bg-white/10 rounded-lg 
-                               transition-colors"
-                  >
-                    <X size={24} />
-                  </button>
+  onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
+  className="lg:hidden text-white p-2 hover:bg-white/10 rounded-lg 
+             transition-colors duration-200"
+  aria-label="Abrir o cerrar menú"
+  title="Abrir o cerrar menú"
+>
+  {isMobileMenuOpen ? <X size={28} /> : <Menu size={28} />}
+</button>
+
                 </div>
 
-                {/* Info de usuario MEJORADA */}
+                {/* Info usuario */}
                 <div className="bg-white/10 backdrop-blur-sm rounded-xl p-4 
                                 border border-white/20">
                   <div className="flex items-center gap-3 mb-2">
@@ -204,7 +211,7 @@ export const Navbar = () => {
                 </div>
               </div>
 
-              {/* Items del menú con animación stagger */}
+              {/* Items del menú */}
               <div className="p-4 space-y-2">
                 {menuItems.map((item, index) => {
                   const isActive = location.pathname === item.to;
@@ -233,7 +240,7 @@ export const Navbar = () => {
                 })}
               </div>
 
-              {/* Botón de logout */}
+              {/* Botón logout */}
               <div className="p-4 border-t border-white/20 mt-auto">
                 <button
                   onClick={() => {
