@@ -165,80 +165,71 @@ function NominaDetallePage(): React.JSX.Element {
       <Card padding="none">
         {nomina.length > 0 ? (
           <div className="overflow-x-auto">
-            <table className="min-w-full divide-y divide-gray-300 text-sm">
-              <thead style={{ backgroundColor: "#023778" }} className="text-white">
-                <tr>
-                  <th className="px-3 py-3 text-left">#</th>
-                  <th className="px-3 py-3 text-left">Empleado</th>
-                  <th className="px-3 py-3 text-left">Puesto</th>
-                  <th className="px-3 py-3 text-left">Departamento</th>
-                  <th className="px-3 py-3 text-right">Salario Base</th>
-                  <th className="px-3 py-3 text-right">Bonificación</th>
-                  <th className="px-3 py-3 text-right">Incentivo</th>
-                  <th className="px-3 py-3 text-right">IGSS</th>
-                  <th className="px-3 py-3 text-right">IRTRA</th>
-                  <th className="px-3 py-3 text-right">Bonos Extras</th>
-                  <th className="px-3 py-3 text-right">Beneficios Emp.</th>
-                  <th className="px-3 py-3 text-right">Otros Desc.</th>
-                  <th className="px-3 py-3 text-right">Desc. Emp.</th>
-                  <th className="px-3 py-3 text-right">Total Líquido</th>
-                  <th className="px-3 py-3 text-center">Acciones</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-gray-200 bg-white">
-                {nomina.map((row, i) => (
-                  <tr key={i} className={i % 2 === 0 ? "bg-gray-50" : "bg-white"}>
-                    <td className="px-3 py-3">{i + 1}</td>
-                    <td className="px-3 py-3 font-medium">{row.empleado}</td>
-                    <td className="px-3 py-3">{row.puesto}</td>
-                    <td className="px-3 py-3">{row.departamento}</td>
-                    <td className="px-3 py-3 text-right">{formatQ(row.salarioBase)}</td>
-                    <td className="px-3 py-3 text-right">{formatQ(row.Bonificacion)}</td>
-                    <td className="px-3 py-3 text-right">{formatQ(row.Incentivo)}</td>
-                    <td className="px-3 py-3 text-right text-red-600">-{formatQ(row.IGSS)}</td>
-                    <td className="px-3 py-3 text-right text-red-600">-{formatQ(row.IRTRA)}</td>
-                    <td className="px-3 py-3 text-right text-green-600">
-                      {formatQ(row["Bonos extras"])}
-                    </td>
-                    <td className="px-3 py-3 text-right text-green-600">
-                      {formatQ(row["Beneficios Empleado"])}
-                    </td>
-                    <td className="px-3 py-3 text-right text-red-600">
-                      -{formatQ(row["Otros Descuentos"])}
-                    </td>
-                    <td className="px-3 py-3 text-right text-red-600">
-                      -{formatQ(row["Descuentos Empleado"])}
-                    </td>
-                    <td className="px-3 py-3 text-right font-bold text-green-700">
-                      {formatQ(row["Total Liquido"])}
-                    </td>
-                    <td className="px-3 py-3 text-center">
-                      <Button size="sm" variant="info" onClick={() => handleVoucher(row)}>
-                        <FileText size={14} /> Voucher
-                      </Button>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
+<table className="min-w-full divide-y divide-gray-300 text-sm">
+  <thead style={{ backgroundColor: "#023778" }} className="text-white">
+    <tr>
+      <th className="px-3 py-3 text-left">#</th>
+      <th className="px-3 py-3 text-left">Empleado</th>
+      <th className="px-3 py-3 text-left">Puesto</th>
+      <th className="px-3 py-3 text-left">Departamento</th>
+      <th className="px-3 py-3 text-right">Salario Base</th>
+      <th className="px-3 py-3 text-right">Bonificación</th>
+      <th className="px-3 py-3 text-right">Incentivo</th>
+      <th className="px-3 py-3 text-right">IGSS</th>
+      <th className="px-3 py-3 text-right">IRTRA</th>
+      <th className="px-3 py-3 text-right">Bonos Extras</th>
+      <th className="px-3 py-3 text-right">Otros Desc.</th>
+      <th className="px-3 py-3 text-right">Total Líquido</th>
+      <th className="px-3 py-3 text-center">Acciones</th>
+    </tr>
+  </thead>
 
-              {/* Totales */}
-              <tfoot className="bg-blue-50 font-bold border-t-2" style={{ borderColor: "#023778" }}>
-                <tr>
-                  <td colSpan={4} className="text-right px-3 py-4">TOTALES:</td>
-                  <td className="text-right px-3 py-4">{formatQ(totales.salarioBase)}</td>
-                  <td className="text-right px-3 py-4">{formatQ(totales.bonificacion)}</td>
-                  <td className="text-right px-3 py-4">{formatQ(totales.incentivo)}</td>
-                  <td className="text-right px-3 py-4 text-red-600">-{formatQ(totales.igss)}</td>
-                  <td className="text-right px-3 py-4 text-red-600">-{formatQ(totales.irtra)}</td>
-                  <td className="text-right px-3 py-4 text-green-600">{formatQ(totales.bonosExtras)}</td>
-                  <td className="text-right px-3 py-4 text-green-600">{formatQ(totales.beneficiosEmpleado)}</td>
-                  <td className="text-right px-3 py-4 text-red-600">-{formatQ(totales.otrosDescuentos)}</td>
-                  <td className="text-right px-3 py-4 text-red-600">-{formatQ(totales.descuentosEmpleado)}</td>
-                  <td className="text-right px-3 py-4 text-green-700 text-lg">{formatQ(totales.totalLiquido)}</td>
-                  <td></td>
-                </tr>
-              </tfoot>
-            </table>
+  <tbody className="divide-y divide-gray-200 bg-white">
+    {nomina.map((row, i) => (
+      <tr key={i} className={i % 2 === 0 ? "bg-gray-50" : "bg-white"}>
+        <td className="px-3 py-3">{i + 1}</td>
+        <td className="px-3 py-3 font-medium">{row.empleado}</td>
+        <td className="px-3 py-3">{row.puesto}</td>
+        <td className="px-3 py-3">{row.departamento}</td>
+        <td className="px-3 py-3 text-right">{formatQ(row.salarioBase)}</td>
+        <td className="px-3 py-3 text-right">{formatQ(row.Bonificacion)}</td>
+        <td className="px-3 py-3 text-right">{formatQ(row.Incentivo)}</td>
+        <td className="px-3 py-3 text-right text-red-600">-{formatQ(row.IGSS)}</td>
+        <td className="px-3 py-3 text-right text-red-600">-{formatQ(row.IRTRA)}</td>
+        <td className="px-3 py-3 text-right text-green-600">
+          {formatQ(row["Bonos extras"])}
+        </td>
+        <td className="px-3 py-3 text-right text-red-600">
+          -{formatQ(row["Otros Descuentos"])}
+        </td>
+        <td className="px-3 py-3 text-right font-bold text-green-700">
+          {formatQ(row["Total Liquido"])}
+        </td>
+        <td className="px-3 py-3 text-center">
+          <Button size="sm" variant="info" onClick={() => handleVoucher(row)}>
+            <FileText size={14} /> Voucher
+          </Button>
+        </td>
+      </tr>
+    ))}
+  </tbody>
+
+  <tfoot className="bg-blue-50 font-bold border-t-2" style={{ borderColor: "#023778" }}>
+    <tr>
+      <td colSpan={4} className="text-right px-3 py-4">TOTALES:</td>
+      <td className="text-right px-3 py-4">{formatQ(totales.salarioBase)}</td>
+      <td className="text-right px-3 py-4">{formatQ(totales.bonificacion)}</td>
+      <td className="text-right px-3 py-4">{formatQ(totales.incentivo)}</td>
+      <td className="text-right px-3 py-4 text-red-600">-{formatQ(totales.igss)}</td>
+      <td className="text-right px-3 py-4 text-red-600">-{formatQ(totales.irtra)}</td>
+      <td className="text-right px-3 py-4 text-green-600">{formatQ(totales.bonosExtras)}</td>
+      <td className="text-right px-3 py-4 text-red-600">-{formatQ(totales.otrosDescuentos)}</td>
+      <td className="text-right px-3 py-4 text-green-700 text-lg">{formatQ(totales.totalLiquido)}</td>
+      <td></td>
+    </tr>
+  </tfoot>
+</table>
+
           </div>
         ) : (
           <div className="text-center py-12">
@@ -263,11 +254,9 @@ function NominaDetallePage(): React.JSX.Element {
         )}
       </Card>
 
-      {voucher && (
-        <Modal show={true} title={`Voucher de ${voucher.empleado}`} onClose={handleCloseVoucher}>
-          <VoucherEmpleado voucher={voucher} />
-        </Modal>
-      )}
+    {voucher && <VoucherEmpleado voucher={voucher} />}
+
+   
     </div>
   );
 }

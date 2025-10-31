@@ -1,5 +1,13 @@
 import React, { useEffect } from "react";
-import { Page, Text, View, Document, StyleSheet, pdf, Image } from "@react-pdf/renderer";
+import {
+  Page,
+  Text,
+  View,
+  Document,
+  StyleSheet,
+  pdf,
+  Image,
+} from "@react-pdf/renderer";
 import Swal from "sweetalert2";
 
 /* ---------- UTILIDADES ---------- */
@@ -35,10 +43,10 @@ const VoucherPDF = ({ voucher }: { voucher: any }) => {
   const styles = StyleSheet.create({
     page: {
       padding: 25,
-      fontSize: 8, // más pequeño
+      fontSize: 8,
       fontFamily: "Helvetica",
       backgroundColor: "#fff",
-      height: "50%", // media hoja
+      height: "50%",
     },
     header: {
       flexDirection: "row",
@@ -150,8 +158,39 @@ const VoucherPDF = ({ voucher }: { voucher: any }) => {
             detalle.map((d: any, i: number) => (
               <View key={i} style={styles.tableRow}>
                 <Text style={styles.cell}>{d.concepto || "—"}</Text>
-                <Text style={styles.cell}>{d.tipo || "—"}</Text>
-                <Text style={styles.cellRight}>{formatQ(d.monto)}</Text>
+
+                {/* ✅ Muestra tipo con color según su valor */}
+                <Text
+                  style={{
+                    ...styles.cell,
+                    color:
+                      (d.tipoConcepto || d.tipo || "").toUpperCase() ===
+                      "BONIFICACION"
+                        ? "#007F0E"
+                        : (d.tipoConcepto || d.tipo || "").toUpperCase() ===
+                          "DEDUCCION"
+                        ? "#C30000"
+                        : "#000",
+                  }}
+                >
+                  {d.tipoConcepto || d.tipo || "—"}
+                </Text>
+
+                <Text
+                  style={{
+                    ...styles.cellRight,
+                    color:
+                      (d.tipoConcepto || d.tipo || "").toUpperCase() ===
+                      "BONIFICACION"
+                        ? "#007F0E"
+                        : (d.tipoConcepto || d.tipo || "").toUpperCase() ===
+                          "DEDUCCION"
+                        ? "#C30000"
+                        : "#000",
+                  }}
+                >
+                  {formatQ(d.monto)}
+                </Text>
               </View>
             ))
           ) : (
@@ -177,7 +216,9 @@ const VoucherPDF = ({ voucher }: { voucher: any }) => {
           </View>
           <View style={styles.totalLine}>
             <Text style={styles.totalBold}>Total Líquido:</Text>
-            <Text style={styles.totalBold}>{formatQ(encabezado.totalLiquido)}</Text>
+            <Text style={styles.totalBold}>
+              {formatQ(encabezado.totalLiquido)}
+            </Text>
           </View>
         </View>
 
@@ -191,7 +232,7 @@ const VoucherPDF = ({ voucher }: { voucher: any }) => {
   );
 };
 
-/* ---------- COMPONENTE PRINCIPAL SIN MODAL ---------- */
+/* ---------- COMPONENTE PRINCIPAL ---------- */
 export const VoucherEmpleado = ({ voucher }: { voucher: any }) => {
   useEffect(() => {
     const generarPDF = async () => {
@@ -207,12 +248,18 @@ export const VoucherEmpleado = ({ voucher }: { voucher: any }) => {
         const url = URL.createObjectURL(blob);
 
         const encabezado = Array.isArray(voucher) ? voucher[0] : voucher;
-        const nombreArchivo = `Voucher_${encabezado.empleado?.replace(/\s+/g, "_") || "empleado"}_${encabezado.periodo?.replace(/\s+/g, "_") || "periodo"}.pdf`;
+        const nombreArchivo = `Voucher_${encabezado.empleado
+          ?.replace(/\s+/g, "_")
+          .trim() || "empleado"}_${encabezado.periodo
+          ?.replace(/\s+/g, "_")
+          .trim() || "periodo"}.pdf`;
 
         Swal.fire({
-          title: " Voucher generado",
+          title: "Voucher generado",
           html: `
-            <p style="margin-bottom: 10px; color: #555;">Tu comprobante está listo para descargar.</p>
+            <p style="margin-bottom: 10px; color: #555;">
+              Tu comprobante está listo para descargar.
+            </p>
             <a href="${url}" download="${nombreArchivo}"
                style="display:inline-block; background:#023778; color:white; padding:10px 20px; border-radius:6px; text-decoration:none; font-weight:600;">
                📄 Descargar PDF

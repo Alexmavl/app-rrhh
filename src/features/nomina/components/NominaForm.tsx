@@ -6,17 +6,18 @@ import { Input } from "../../../components/ui/Input";
 import { Button } from "../../../components/ui/Button";
 import { Card } from "../../../components/ui/Card";
 import { nominaService } from "../../../services/nomina.service";
-import { 
-  swalSuccess, 
-  swalError, 
-  swalConfirm, 
-  swalLoading, 
-  swalClose 
+import { empleadosService } from "../../../services/empleados.service";
+import {
+  swalSuccess,
+  swalError,
+  swalConfirm,
+  swalLoading,
+  swalClose,
 } from "../../../utils/swalConfig";
-import { 
-  Calendar, 
-  Users, 
-  User, 
+import {
+  Calendar,
+  Users,
+  User,
   Save,
   X,
   AlertCircle,
@@ -93,8 +94,7 @@ interface Props {
 
 export function NominaForm({ onClose, onSuccess }: Props): React.JSX.Element {
   const [isLoading, setIsLoading] = useState(false);
-  const [sugerencias, setSugerencias] = useState<any[]>([]);
-const [isBuscando, setIsBuscando] = useState(false);
+  const [empleadoNombre, setEmpleadoNombre] = useState<string | null>(null);
 
   const currentYear = new Date().getFullYear();
 
@@ -121,16 +121,35 @@ const [isBuscando, setIsBuscando] = useState(false);
   const idEmpleado = watch("idEmpleado");
   const periodo = mes && anio ? `${mes} ${anio}` : "";
 
+  /* Buscar nombre del empleado */
+  useEffect(() => {
+    const fetchEmpleado = async () => {
+      if (!idEmpleado) {
+        setEmpleadoNombre(null);
+        return;
+      }
+      try {
+        const empleado = await empleadosService.obtenerPorId(Number(idEmpleado));
+        if (empleado?.nombres) {
+          setEmpleadoNombre(`${empleado.nombres} ${empleado.apellidos}`);
+        } else {
+          setEmpleadoNombre("No encontrado");
+        }
+      } catch {
+        setEmpleadoNombre("No encontrado");
+      }
+    };
+    fetchEmpleado();
+  }, [idEmpleado]);
+
   /* Autocompletar fechas */
   useEffect(() => {
     if (!mes || !anio) return;
-
     const mesIndex = mesesValidos.indexOf(mes);
     if (mesIndex === -1) return;
 
     const inicio = new Date(anio, mesIndex, 1);
     const fin = new Date(anio, mesIndex + 1, 0);
-
     const fmt = (d: Date) => d.toISOString().split("T")[0];
 
     setValue("fechaInicio", fmt(inicio));
@@ -140,7 +159,6 @@ const [isBuscando, setIsBuscando] = useState(false);
   /* Envío del formulario */
   const onSubmit: SubmitHandler<FormData> = async (data) => {
     const periodo = `${data.mes} ${data.anio}`;
-    
     try {
       if (data.idEmpleado) {
         const confirm = await swalConfirm(
@@ -153,19 +171,14 @@ const [isBuscando, setIsBuscando] = useState(false);
 
         setIsLoading(true);
         swalLoading("Generando nómina individual...");
-
         await nominaService.crear({
           idEmpleado: data.idEmpleado,
           periodo,
           fechaInicio: data.fechaInicio,
           fechaFin: data.fechaFin,
         });
-
         swalClose();
-        await swalSuccess(
-          "Nómina individual creada",
-          "La nómina se generó correctamente"
-        );
+        await swalSuccess("Nómina individual creada", "La nómina se generó correctamente");
       } else {
         const confirm = await swalConfirm(
           "¿Procesar nómina general?",
@@ -177,18 +190,13 @@ const [isBuscando, setIsBuscando] = useState(false);
 
         setIsLoading(true);
         swalLoading("Procesando nómina general...", "Esto puede tomar unos momentos");
-
         await nominaService.procesar({
           periodo,
           fechaInicio: data.fechaInicio,
           fechaFin: data.fechaFin,
         });
-
         swalClose();
-        await swalSuccess(
-          "Nómina general procesada",
-          "La nómina se generó correctamente para todos los empleados"
-        );
+        await swalSuccess("Nómina general procesada", "La nómina se generó correctamente");
       }
 
       reset();
@@ -196,39 +204,16 @@ const [isBuscando, setIsBuscando] = useState(false);
       onClose();
     } catch (err: any) {
       swalClose();
-      await swalError(
-        "Error al generar nómina",
-        err.response?.data?.message || "No se pudo procesar la nómina. Intenta nuevamente."
-      );
+      swalError(err.response?.data?.message || "No se pudo procesar la nómina.");
       console.error(err);
     } finally {
       setIsLoading(false);
     }
   };
 
-
-  const buscarEmpleados = async (query: string) => {
-  if (!query.trim()) {
-    setSugerencias([]);
-    return;
-  }
-
-  try {
-    setIsBuscando(true);
-    const data = await nominaService.buscarEmpleados(query); 
-    // 🔹 Debe devolver [{ idEmpleado, nombre }]
-    setSugerencias(Array.isArray(data) ? data : []);
-  } catch (err) {
-    console.error("Error buscando empleados", err);
-  } finally {
-    setIsBuscando(false);
-  }
-};
-
-
   return (
     <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
-      {/* Información del periodo */}
+      {/* PERIODO */}
       <Card variant="filled">
         <div className="flex items-center gap-2 mb-2">
           <Calendar size={18} className="text-white" />
@@ -239,7 +224,7 @@ const [isBuscando, setIsBuscando] = useState(false);
         </p>
       </Card>
 
-      {/* Selección de mes y año */}
+      {/* MES Y AÑO */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         <div>
           <label className="block text-sm font-semibold text-gray-700 mb-2">
@@ -280,7 +265,7 @@ const [isBuscando, setIsBuscando] = useState(false);
         />
       </div>
 
-      {/* Fechas */}
+      {/* FECHAS */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         <Input
           label="Fecha Inicio"
@@ -288,62 +273,62 @@ const [isBuscando, setIsBuscando] = useState(false);
           leftIcon={<Calendar size={18} />}
           {...register("fechaInicio")}
           error={errors.fechaInicio?.message}
-          helperText="Primer día del periodo"
           required
         />
-
         <Input
           label="Fecha Fin"
           type="date"
           leftIcon={<Calendar size={18} />}
           {...register("fechaFin")}
           error={errors.fechaFin?.message}
-          helperText="Último día del periodo"
           required
         />
       </div>
 
-      {/* ID Empleado opcional */}
+      {/* EMPLEADO */}
       <Card>
         <div className="flex items-center gap-2 mb-3">
           <User size={18} className="text-gray-600" />
           <h4 className="font-semibold text-gray-900">Nómina Individual (Opcional)</h4>
         </div>
+
         <Input
           label="ID del Empleado"
           type="number"
-          placeholder="Dejar vacío para procesar todos los empleados"
+          placeholder="Dejar vacío para todos los empleados"
           leftIcon={<User size={18} />}
           {...register("idEmpleado")}
-          helperText="Si especificas un ID, solo se generará la nómina para ese empleado"
         />
+
+        {empleadoNombre && (
+          <p
+            className={`mt-1 text-sm ${
+              empleadoNombre === "No encontrado"
+                ? "text-red-600"
+                : "text-green-700 font-semibold"
+            }`}
+          >
+            {empleadoNombre}
+          </p>
+        )}
       </Card>
 
-      {/* Resumen del periodo */}
+      {/* RESUMEN */}
       {periodo && (
         <Card variant="outlined">
-          <div className="flex items-start gap-3">
-            <div className="p-2 bg-blue-100 rounded-lg flex-shrink-0">
-              <Calendar size={20} className="text-blue-600" />
-            </div>
-            <div className="flex-1">
-              <p className="text-sm font-semibold text-gray-900 mb-1">
-                Periodo seleccionado
-              </p>
-              <p className="text-lg font-bold" style={{ color: "#023778" }}>
-                {periodo}
-              </p>
-              <p className="text-sm text-gray-600 mt-1">
-                {idEmpleado 
-                  ? `Nómina individual para empleado ID ${idEmpleado}` 
-                  : "Nómina general para todos los empleados"}
-              </p>
-            </div>
-          </div>
+          <p className="text-sm font-semibold text-gray-900 mb-1">
+            Periodo seleccionado
+          </p>
+          <p className="text-lg font-bold text-blue-900">{periodo}</p>
+          <p className="text-sm text-gray-600 mt-1">
+            {idEmpleado
+              ? `Nómina individual para empleado ID ${idEmpleado}`
+              : "Nómina general para todos los empleados"}
+          </p>
         </Card>
       )}
 
-      {/* Botones de acción */}
+      {/* BOTONES */}
       <div className="flex justify-end gap-2 pt-4 border-t">
         <Button
           type="button"
@@ -360,10 +345,10 @@ const [isBuscando, setIsBuscando] = useState(false);
           loading={isLoading}
           icon={idEmpleado ? <User size={18} /> : <Users size={18} />}
         >
-          {isLoading 
-            ? "Procesando..." 
-            : idEmpleado 
-            ? "Generar Individual" 
+          {isLoading
+            ? "Procesando..."
+            : idEmpleado
+            ? "Generar Individual"
             : "Procesar General"}
         </Button>
       </div>

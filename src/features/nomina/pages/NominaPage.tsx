@@ -249,7 +249,7 @@ export function NominaPage(): React.JSX.Element {
               fullWidth
               className="md:w-auto"
             >
-              Beneficio Global
+              Bonos o Descuentos
             </Button>
             <Button
               icon={<Plus size={18} />}
