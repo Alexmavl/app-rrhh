@@ -29,7 +29,8 @@ API REST (Node.js / Express)
        ↓
 SQL Server
 ```
-
+---
+```
 Backend 
 ├── 📁 src/
 │   ├── 📁 core/
@@ -144,9 +145,11 @@ Backend
 ├── ⚙️ package.json
 ├── 📄 setup.js
 └── ⚙️ tsconfig.json
-
+```
+---
+---
 Frontend
-
+```
 ├── 📁 documents/
 │   ├── 📝 MANUAL_TECNICO.md
 │   └── 📝 MANUAL_USUARIO.md
@@ -278,7 +281,8 @@ Frontend
 ├── ⚙️ tsconfig.json
 ├── ⚙️ tsconfig.node.json
 └── 📄 vite.config.ts
-
+```
+---
 ## 6. Instalación y Configuración
 
 ```bash
