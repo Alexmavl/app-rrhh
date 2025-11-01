@@ -13,6 +13,7 @@ Incluye un backend con **Node.js + Express + TypeScript + SQL Server** y un fron
 - Swagger (documentación de endpoints)  
 - Repository Pattern + Clean Architecture  
 - Docker y Docker Compose
+-  https://github.com/Alexmavl/api-nomina-rh.git
 
 ### 🎨 Frontend
 - React 18 + TypeScript + Vite  
