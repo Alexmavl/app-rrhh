@@ -37,7 +37,10 @@ La aplicación se ejecutará en
 - 📘 [Manual de Usuario](./documents/MANUAL_USUARIO.md)
 - 🧠 [Manual Técnico](./documents/MANUAL_TECNICO.md)
 
-## 👨‍💻 Autor
-**Pablo Raúl Arreola Contreras Y Marvin Alexander**  
+## 👨‍💻 Autores
+**Marvin Vásquez**  
+**Pablo Arreola** 
+**Karla Arevalo** 
+**Daniel Bran** 
 Universidad Mariano Gálvez de Guatemala  
 Proyecto: *Sistema de Nómina y Gestión de Recursos Humanos — 2025*
