@@ -14,7 +14,8 @@ import {
   Menu,
   X,
   UserCircle,
-  ShieldCheck, // 🧩 Nuevo icono para Usuarios
+  ShieldCheck,
+  FileText, // 👈 Icono para Mis Documentos
 } from "lucide-react";
 
 export const Navbar = () => {
@@ -26,22 +27,39 @@ export const Navbar = () => {
   if (!auth) return null;
   const { user, logout } = auth;
 
-  // 🔹 Menú principal
-  const menuItems = [
-    { to: "/empleados", label: "Empleados", icon: <Users size={20} /> },
-    { to: "/departamentos", label: "Departamentos", icon: <Building2 size={20} /> },
-    { to: "/puestos", label: "Puestos", icon: <BriefcaseBusiness size={20} /> },
-    { to: "/nomina", label: "Nómina", icon: <DollarSign size={20} /> },
-    { to: "/reportes", label: "Reportes", icon: <BarChart2 size={20} /> },
-  ];
+  // 🔹 Menú principal dinámico según el rol
+ let menuItems: { to: string; label: string; icon: React.ReactNode }[] = [];
 
-  // 🧩 Agregar módulo Usuarios solo para Admin o RRHH
-  if (user && (user.rol === "Admin" || user.rol === "RRHH")) {
-    menuItems.push({
-      to: "/usuarios",
-      label: "Usuarios",
-      icon: <ShieldCheck size={20} />,
-    });
+
+  if (user) {
+    // 👔 ADMIN y RRHH → menú completo
+    if (user.rol === "Admin" || user.rol === "RRHH") {
+      menuItems = [
+        { to: "/empleados", label: "Empleados", icon: <Users size={20} /> },
+        { to: "/departamentos", label: "Departamentos", icon: <Building2 size={20} /> },
+        { to: "/puestos", label: "Puestos", icon: <BriefcaseBusiness size={20} /> },
+        { to: "/nomina", label: "Nómina", icon: <DollarSign size={20} /> },
+        { to: "/reportes", label: "Reportes", icon: <BarChart2 size={20} /> },
+      ];
+
+      // ✅ Solo Admin ve “Usuarios”
+      if (user.rol === "Admin") {
+        menuItems.push({
+          to: "/usuarios",
+          label: "Usuarios",
+          icon: <ShieldCheck size={20} />,
+        });
+      }
+    }
+
+    if (user.rol === "Empleado" || user.rol === "Admin") {
+  menuItems.push({
+    to: "/documentos",
+    label: "Documentos",
+    icon: <FileText size={20} />,
+  });
+}
+
   }
 
   const handleLinkClick = () => setIsMobileMenuOpen(false);
@@ -181,15 +199,14 @@ export const Navbar = () => {
                     <span className="font-bold text-lg">Sistema RRHH</span>
                   </div>
                   <button
-  onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
-  className="lg:hidden text-white p-2 hover:bg-white/10 rounded-lg 
-             transition-colors duration-200"
-  aria-label="Abrir o cerrar menú"
-  title="Abrir o cerrar menú"
->
-  {isMobileMenuOpen ? <X size={28} /> : <Menu size={28} />}
-</button>
-
+                    onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
+                    className="lg:hidden text-white p-2 hover:bg-white/10 rounded-lg 
+                               transition-colors duration-200"
+                    aria-label="Abrir o cerrar menú"
+                    title="Abrir o cerrar menú"
+                  >
+                    {isMobileMenuOpen ? <X size={28} /> : <Menu size={28} />}
+                  </button>
                 </div>
 
                 {/* Info usuario */}

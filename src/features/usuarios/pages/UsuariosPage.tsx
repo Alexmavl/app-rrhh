@@ -1,7 +1,13 @@
 import { useEffect, useState, useContext } from "react";
 import { AuthContext } from "../../../context/AuthContext";
 import type { UsuarioFormData } from "../components/UsuarioForm";
-import { getUsuarios, getRoles, createUsuario, updateUsuario, toggleUsuarioActivo } from "../services/usuarios.service";
+import {
+  getUsuarios,
+  getRoles,
+  createUsuario,
+  updateUsuario,
+  toggleUsuarioActivo,
+} from "../services/usuarios.service";
 import { Usuario, Rol } from "../models/usuario.model";
 import { Button } from "../../../components/ui/Button";
 import { Card } from "../../../components/ui/Card";
@@ -17,16 +23,22 @@ export default function UsuariosPage() {
   const [editUser, setEditUser] = useState<Usuario | null>(null);
   const { user } = useContext(AuthContext) || {};
 
+  /* 🔹 Cargar usuarios y roles */
   const cargarDatos = async () => {
-    const [dataUsuarios, dataRoles] = await Promise.all([getUsuarios(), getRoles()]);
-    setUsuarios(dataUsuarios);
-    setRoles(dataRoles);
+    try {
+      const [dataUsuarios, dataRoles] = await Promise.all([getUsuarios(), getRoles()]);
+      setUsuarios(dataUsuarios);
+      setRoles(dataRoles);
+    } catch (err) {
+      console.error("Error al cargar datos:", err);
+    }
   };
 
   useEffect(() => {
     cargarDatos();
   }, []);
 
+  /* 🧩 Crear nuevo usuario */
   const handleCrear = async (data: UsuarioFormData) => {
     await createUsuario(data);
     Swal.fire("Éxito", "Usuario creado correctamente", "success");
@@ -34,6 +46,7 @@ export default function UsuariosPage() {
     cargarDatos();
   };
 
+  /* 🧩 Editar usuario existente */
   const handleEditar = async (data: UsuarioFormData) => {
     if (!editUser) return;
     await updateUsuario(editUser.id, data);
@@ -43,6 +56,7 @@ export default function UsuariosPage() {
     cargarDatos();
   };
 
+  /* 🧩 Activar / Desactivar usuario */
   const handleToggle = async (u: Usuario) => {
     const confirm = await swalConfirm(
       `¿Deseas ${u.activo ? "desactivar" : "activar"} al usuario ${u.nombre}?`
@@ -71,6 +85,7 @@ export default function UsuariosPage() {
               <th className="p-2">Nombre</th>
               <th className="p-2">Correo</th>
               <th className="p-2">Rol</th>
+              <th className="p-2">Empleado</th>
               <th className="p-2">Activo</th>
               <th className="p-2">Acciones</th>
             </tr>
@@ -82,8 +97,13 @@ export default function UsuariosPage() {
                 <td>{u.nombre}</td>
                 <td>{u.email}</td>
                 <td>{roles.find((r) => r.id === u.idRol)?.nombre || "-"}</td>
+                <td>{u.empleadoNombre || "—"}</td>
                 <td>
-                  <span className={`px-2 py-1 rounded text-white text-sm ${u.activo ? "bg-green-600" : "bg-red-600"}`}>
+                  <span
+                    className={`px-2 py-1 rounded text-white text-sm ${
+                      u.activo ? "bg-green-600" : "bg-red-600"
+                    }`}
+                  >
                     {u.activo ? "Activo" : "Inactivo"}
                   </span>
                 </td>
@@ -110,16 +130,15 @@ export default function UsuariosPage() {
         </table>
       </Card>
 
+      {/* 🧩 Modal para crear/editar usuario */}
       <Modal
-  title={editUser ? "Editar Usuario" : "Nuevo Usuario"}
-  show={showModal}          // ✅ usa la prop correcta
-  onClose={() => {
-    setShowModal(false);
-    setEditUser(null);
-  }}
->
-
-
+        title={editUser ? "Editar Usuario" : "Nuevo Usuario"}
+        show={showModal}
+        onClose={() => {
+          setShowModal(false);
+          setEditUser(null);
+        }}
+      >
         <UsuarioForm
           onSubmit={editUser ? handleEditar : handleCrear}
           roles={roles}

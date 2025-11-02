@@ -1,5 +1,5 @@
 import { Routes, Route, Navigate } from "react-router-dom";
-import EmpleadosPage from "../features/empleados/pages/EmpleadosPage"; // ✅ Página de empleados (debe tener export default)
+import EmpleadosPage from "../features/empleados/pages/EmpleadosPage";
 import DepartamentosPage from "../features/departamentos/pages/DepartamentosPage";
 import PuestosPage from "../features/puestos/pages/PuestosPage";
 import ReportesPage from "../features/reportes/pages/ReportesPage";
@@ -10,14 +10,16 @@ import InicioPage from "../features/inicio/pages/InicioPage";
 import PrivateRoute from "./PrivateRoute";
 import { MainLayout } from "../components/layout/MainLayout";
 import UsuariosPage from "../features/usuarios/pages/UsuariosPage";
+import ForbiddenPage from "../features/auth/pages/ForbiddenPage";
+import MisDocumentosPage from "../features/documentos/pages/MisDocumentosPage"; // ✅ Asegúrate de importar esto
 
 export default function AppRouter() {
   return (
     <Routes>
-      {/* Ruta pública */}
+      {/* 🔹 Ruta pública */}
       <Route path="/login" element={<LoginPage />} />
 
-      {/*  Rutas protegidas con layout principal */}
+      {/* 🔒 Rutas protegidas dentro del layout principal */}
       <Route
         element={
           <PrivateRoute>
@@ -34,12 +36,34 @@ export default function AppRouter() {
         <Route path="/departamentos" element={<DepartamentosPage />} />
         <Route path="/puestos" element={<PuestosPage />} />
         <Route path="/nomina" element={<NominaPage />} />
-       <Route path="/nomina/detalle/:periodo" element={<NominaDetallePage />} />
-       <Route path="/usuarios" element={<UsuariosPage />} />
+        <Route path="/nomina/detalle/:periodo" element={<NominaDetallePage />} />
         <Route path="/reportes" element={<ReportesPage />} />
+
+        {/* 👇 Solo el rol "Admin" puede acceder a Usuarios */}
+        <Route
+          path="/usuarios"
+          element={
+            <PrivateRoute rolesPermitidos={["Admin"]}>
+              <UsuariosPage />
+            </PrivateRoute>
+          }
+        />
+
+        {/*  Solo el rol "Empleado" puede acceder a Mis Documentos */}
+        <Route
+          path="/documentos"
+          element={
+            <PrivateRoute rolesPermitidos={["Admin","Empleado"]}>
+              <MisDocumentosPage />
+            </PrivateRoute>
+          }
+        />
       </Route>
 
-      {/* 🚫 Página 404 */}
+      {/*  Página de acceso denegado */}
+      <Route path="/403" element={<ForbiddenPage />} />
+
+      {/*  Página 404 (no encontrada) */}
       <Route
         path="*"
         element={

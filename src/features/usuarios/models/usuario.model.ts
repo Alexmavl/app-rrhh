@@ -6,6 +6,8 @@ export interface Usuario {
   activo: boolean;
   fechaCreacion: string;
   rolNombre?: string;
+  idEmpleado?: number | null;
+  empleadoNombre?: string | null;
 }
 
 export interface Rol {

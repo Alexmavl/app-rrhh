@@ -7,7 +7,7 @@ export const documentosService = {
    */
   async listarPorEmpleado(idEmpleado: number): Promise<Documento[]> {
     const res = await api.get(`/documentos?idEmpleado=${idEmpleado}`);
-    // ✅ Asegura siempre retornar un array
+    //  Asegura siempre retornar un array
     return Array.isArray(res.data?.data) ? res.data.data : [];
   },
 
