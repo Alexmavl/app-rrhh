@@ -22,7 +22,7 @@ Una vez autenticado, accederás al **panel principal** con los módulos disponib
 
 ### Pantalla Principal
 El usuario con rol **Administrador** tiene acceso completo a todos los módulos del sistema.
-
+![Admin ](../public/image/Admi.png)
 **Módulos disponibles:**
 - Empleados  
 - Departamentos  
