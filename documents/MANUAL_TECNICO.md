@@ -1,310 +1,345 @@
-# Manual Técnico
+# Manual Técnico del Sistema de Nómina y RRHH
 
-## 1. Propósito
-Describe la estructura técnica, configuración y componentes del Sistema de Nómina y RRHH.
+## Introducción
 
-## 2. Alcance
-Permite administrar empleados, departamentos, nóminas y reportes.
+El presente documento tiene como objetivo describir de forma técnica, estructurada y detallada la configuración, arquitectura, dependencias y procedimientos de instalación del *Sistema de Nómina y Gestión de Recursos Humanos*. Este sistema fue desarrollado utilizando tecnologías modernas basadas en **Node.js, Express, React, Vite y SQL Server**, y se encuentra desplegado en un entorno **IIS (Internet Information Services)**.
 
-## 3. Requerimientos del Sistema
-- Node.js 20+
-- TypeScript 5+
-- React 18 + Vite
-- SQL Server Management Studio
-- 8 GB RAM mínimo
+El manual está orientado a desarrolladores, administradores de sistemas y personal técnico que requieran comprender la estructura interna, la configuración de los componentes y las buenas prácticas de mantenimiento del sistema.
 
-## 4. Dependencias
-- React Query / Zustand
-- Axios
-- React Hook Form + Zod
-- TailwindCSS
-- jsPDF / pdfmake
+---
 
-## 5. Arquitectura General
+## Propósito
 
-```
+Este manual técnico describe los procedimientos, dependencias y configuraciones necesarias para instalar, ejecutar y mantener el sistema de nómina. También documenta la arquitectura general, los flujos de comunicación entre frontend, API REST y base de datos, así como las consideraciones de seguridad y mantenimiento preventivo.
+
+---
+
+## Alcance
+
+El sistema permite la **administración completa del recurso humano** de una organización, incluyendo:
+
+* Registro y gestión de empleados.
+* Mantenimiento de departamentos y puestos.
+* Procesamiento automático de nóminas con cálculo de bonificaciones y deducciones.
+* Generación de reportes en formato PDF y exportaciones de datos.
+* Control de acceso por roles con **JWT (Administrador, RRHH, Empleado)**.
+
+---
+
+## Requerimientos del Sistema
+
+**Hardware mínimo recomendado:**
+
+* Procesador: Intel Core i5 o superior.
+* Memoria RAM: 8 GB.
+* Almacenamiento: 10 GB libres.
+
+**Software necesario:**
+
+* Node.js 20.x o superior.
+* npm 10.x o superior.
+* TypeScript 5.x.
+* React 18 + Vite.
+* SQL Server 2019 o superior.
+* SQL Server Management Studio (SSMS).
+* Visual Studio Code o IDE equivalente.
+* Navegador moderno (Chrome, Edge o Firefox).
+
+---
+
+## Dependencias del Sistema
+
+El sistema utiliza librerías modernas para garantizar escalabilidad, mantenibilidad y rendimiento:
+
+* **Frameworks:** React 18 + Vite (frontend) / Node.js + Express (backend).
+* **Lenguaje:** TypeScript 5.x (tipado estático).
+* **Estilos:** TailwindCSS 4.x (diseño responsivo y moderno).
+* **Gestor de estado:** React Query + Zustand.
+* **Validación de formularios:** React Hook Form + Zod.
+* **HTTP:** Axios con interceptores JWT.
+* **Autenticación:** JSON Web Tokens (JWT).
+* **Reportes:** jsPDF y pdfmake.
+
+---
+
+## Arquitectura General
+
+```text
 Frontend (React + Vite)
        ↓
 API REST (Node.js / Express)
        ↓
-SQL Server
+Base de Datos (SQL Server)
 ```
+
+**Flujo de operación:**
+
+1. El usuario interactúa con el **frontend React**.
+2. Las solicitudes son enviadas a la **API REST** mediante Axios.
+3. El **backend Node.js** procesa las peticiones y consulta la base de datos SQL Server.
+4. Los resultados son devueltos al frontend para ser mostrados al usuario.
+
 ---
-```
-Backend 
-├── 📁 src/
-│   ├── 📁 core/
-│   │   ├── 📁 db/
-│   │   │   ├── 📄 data-source.ts
-│   │   │   ├── 📄 dbnomina.bak
-│   │   │   ├── 📄 init.sql
-│   │   │   └── 📄 sql.ts
-│   │   ├── 📁 errors/
-│   │   │   └── 📄 AppError.ts
-│   │   ├── 📄 config.ts
-│   │   ├── 📄 logger.ts
-│   │   └── 📄 swagger.ts
-│   ├── 📁 middlewares/
-│   │   ├── 📄 auth.middleware.ts
-│   │   ├── 📄 error.middleware.ts
-│   │   ├── 📄 role.middleware.ts
-│   │   ├── 📄 upload.middleware.ts
-│   │   └── 📄 validation.middleware.ts
-│   ├── 📁 modules/
-│   │   ├── 📁 auth/
-│   │   │   ├── 📄 auth.controller.ts
-│   │   │   ├── 📄 auth.model.ts
-│   │   │   ├── 📄 auth.repository.ts
-│   │   │   ├── 📄 auth.routes.ts
-│   │   │   ├── 📄 auth.service.ts
-│   │   │   └── 📄 auth.types.ts
-│   │   ├── 📁 bitacora/
-│   │   │   ├── 📄 bitacora.controller.ts
-│   │   │   ├── 📄 bitacora.model.ts
-│   │   │   ├── 📄 bitacora.repository.ts
-│   │   │   ├── 📄 bitacora.routes.ts
-│   │   │   └── 📄 bitacora.service.ts
-│   │   ├── 📁 departamentos/
-│   │   │   ├── 📄 departamentos.controller.ts
-│   │   │   ├── 📄 departamentos.model.ts
-│   │   │   ├── 📄 departamentos.repository.ts
-│   │   │   ├── 📄 departamentos.routes.ts
-│   │   │   └── 📄 departamentos.service.ts
-│   │   ├── 📁 documentos/
-│   │   │   ├── 📄 documentos.controller.ts
-│   │   │   ├── 📄 documentos.model.ts
-│   │   │   ├── 📄 documentos.repository.ts
-│   │   │   ├── 📄 documentos.routes.ts
-│   │   │   └── 📄 documentos.service.ts
-│   │   ├── 📁 empleados/
-│   │   │   ├── 📄 empleados.controller.ts
-│   │   │   ├── 📄 empleados.model.ts
-│   │   │   ├── 📄 empleados.repository.ts
-│   │   │   ├── 📄 empleados.routes.ts
-│   │   │   └── 📄 empleados.service.ts
-│   │   ├── 📁 formacion/
-│   │   │   ├── 📄 formacion.controller.ts
-│   │   │   ├── 📄 formacion.model.ts
-│   │   │   ├── 📄 formacion.repository.ts
-│   │   │   ├── 📄 formacion.routes.ts
-│   │   │   └── 📄 formacion.service.ts
-│   │   ├── 📁 nominas/
-│   │   │   ├── 📄 nominas.controller.ts
-│   │   │   ├── 📄 nominas.model.ts
-│   │   │   ├── 📄 nominas.repository.ts
-│   │   │   ├── 📄 nominas.routes.ts
-│   │   │   └── 📄 nominas.service.ts
-│   │   ├── 📁 puestos/
-│   │   │   ├── 📄 puestos.controller.ts
-│   │   │   ├── 📄 puestos.model.ts
-│   │   │   ├── 📄 puestos.repository.ts
-│   │   │   ├── 📄 puestos.routes.ts
-│   │   │   └── 📄 puestos.service.ts
-│   │   ├── 📁 reportes/
-│   │   │   ├── 📄 reportes.controller.ts
-│   │   │   ├── 📄 reportes.model.ts
-│   │   │   ├── 📄 reportes.repository.ts
-│   │   │   ├── 📄 reportes.routes.ts
-│   │   │   └── 📄 reportes.service.ts
-│   │   ├── 📁 roles/
-│   │   │   ├── 📄 roles.controller.ts
-│   │   │   ├── 📄 roles.model.ts
-│   │   │   ├── 📄 roles.repository.ts
-│   │   │   └── 📄 roles.routes.ts
-│   │   ├── 📁 tiposDocumento/
-│   │   │   ├── 📄 tiposDocumento.controller.ts
-│   │   │   ├── 📄 tiposDocumento.model.ts
-│   │   │   ├── 📄 tiposDocumento.repository.ts
-│   │   │   ├── 📄 tiposDocumento.routes.ts
-│   │   │   └── 📄 tiposDocumento.service.ts
-│   │   └── 📁 usuarios/
-│   │       ├── 📄 usuarios.controller.ts
-│   │       ├── 📄 usuarios.model.ts
-│   │       ├── 📄 usuarios.repository.ts
-│   │       ├── 📄 usuarios.routes.ts
-│   │       └── 📄 usuarios.service.ts
-│   ├── 📁 routes/
-│   │   └── 📄 index.ts
-│   ├── 📁 types/
-│   │   └── 📄 express.d.ts
-│   ├── 📁 uploads/
-│   │   └── 📁 empleados/
-│   │       ├── 📁 academicos/
-│   │       │   ├── 📕 constancia_curso_demo.pdf
-│   │       │   └── 📕 titulo_demo.pdf
-│   │       └── 📁 personales/
-│   │           ├── 📕 contrato_demo.pdf
-│   │           └── 📕 dpi_demo.pdf
-│   ├── 📄 app.ts
-│   └── 📄 main.ts
-├── ⚙️ .env.example
-├── ⚙️ .gitignore
-├── ⚙️ docker-compose.yml
-├── ⚙️ nodemon.json
-├── ⚙️ package-lock.json
-├── ⚙️ package.json
-├── 📄 setup.js
-└── ⚙️ tsconfig.json
-```
+
+## Componentes del Sistema
+
+### Frontend
+
+* **Lenguaje:** TypeScript 5.
+* **Framework:** React + Vite.
+* **Estilos:** TailwindCSS.
+* **Estado:** React Query + Zustand.
+* **Validación:** react-hook-form + Zod.
+* **Reportes:** jsPDF / pdfmake.
+
+### Backend
+
+* **Lenguaje:** TypeScript.
+* **Framework:** Node.js + Express.
+* **Autenticación:** JWT.
+* **ORM:** Sequelize / Prisma (para SQL Server).
+* **Documentación:** Swagger UI.
+
 ---
----
-Frontend
-```
-├── 📁 documents/
-│   ├── 📝 MANUAL_TECNICO.md
-│   └── 📝 MANUAL_USUARIO.md
-├── 📁 public/
-│   ├── 📁 image/
-│   │   ├── 🖼️ Departamento.png
-│   │   ├── 🖼️ DetalleDeNomina.png
-│   │   ├── 🖼️ Empleados.png
-│   │   ├── 🖼️ FormacionAcademica.png
-│   │   ├── 🖼️ Icon.jpg
-│   │   ├── 🖼️ Icon2.jpg
-│   │   ├── 🖼️ Inicio.png
-│   │   ├── 🖼️ LogotipoUMG.png
-│   │   ├── 🖼️ Nomina.png
-│   │   ├── 🖼️ NuevoEmpleado.png
-│   │   ├── 🖼️ ReporteDocumentos.png
-│   │   ├── 🖼️ ReporteGeneral.png
-│   │   ├── 🖼️ Usuarios.png
-│   │   ├── 🖼️ login.jpg
-│   │   ├── 🖼️ login.png
-│   │   └── 🖼️ puesto.png
-│   ├── 📄 favicon.ico
-│   └── 🖼️ vite.svg
-├── 📁 src/
-│   ├── 📁 api/
-│   │   ├── 📄 client.ts
-│   │   └── 📄 config.ts
-│   ├── 📁 assets/
-│   │   └── 🖼️ react.svg
-│   ├── 📁 components/
-│   │   ├── 📁 layout/
-│   │   │   ├── 📄 MainLayout.tsx
-│   │   │   └── 📄 Navbar.tsx
-│   │   └── 📁 ui/
-│   │       ├── 📄 Button.tsx
-│   │       ├── 📄 Card.tsx
-│   │       ├── 📄 Input.tsx
-│   │       ├── 📄 Modal.tsx
-│   │       ├── 📄 Table.tsx
-│   │       └── 📄 ToggleSwitch.tsx
-│   ├── 📁 context/
-│   │   ├── 📄 AuthContext.tsx
-│   │   └── 📄 AuthProvider.tsx
-│   ├── 📁 features/
-│   │   ├── 📁 auth/
-│   │   │   └── 📁 pages/
-│   │   │       └── 📄 LoginPage.tsx
-│   │   ├── 📁 departamentos/
-│   │   │   └── 📁 pages/
-│   │   │       └── 📄 DepartamentosPage.tsx
-│   │   ├── 📁 empleados/
-│   │   │   ├── 📁 components/
-│   │   │   │   ├── 📄 EmpleadoForm.tsx
-│   │   │   │   ├── 📄 EmpleadoPerfilModal.tsx
-│   │   │   │   └── 📄 EmpleadosFormacionModal.tsx
-│   │   │   └── 📁 pages/
-│   │   │       └── 📄 EmpleadosPage.tsx
-│   │   ├── 📁 inicio/
-│   │   │   └── 📁 pages/
-│   │   │       └── 📄 InicioPage.tsx
-│   │   ├── 📁 nomina/
-│   │   │   ├── 📁 components/
-│   │   │   │   ├── 📄 BeneficioModal.tsx
-│   │   │   │   ├── 📄 NominaForm.tsx
-│   │   │   │   └── 📄 VoucherEmpleado.tsx
-│   │   │   └── 📁 pages/
-│   │   │       ├── 📄 NominaDetallePage.tsx
-│   │   │       └── 📄 NominaPage.tsx
-│   │   ├── 📁 puestos/
-│   │   │   └── 📁 pages/
-│   │   │       └── 📄 PuestosPage.tsx
-│   │   ├── 📁 reportes/
-│   │   │   ├── 📁 components/
-│   │   │   │   ├── 📄 ReportePDF.tsx
-│   │   │   │   ├── 📄 ReportePDFDocumentos.tsx
-│   │   │   │   └── 📄 ReportePDFGlobal.tsx
-│   │   │   └── 📁 pages/
-│   │   │       └── 📄 ReportesPage.tsx
-│   │   └── 📁 usuarios/
-│   │       ├── 📁 components/
-│   │       │   └── 📄 UsuarioForm.tsx
-│   │       ├── 📁 models/
-│   │       │   └── 📄 usuario.model.ts
-│   │       ├── 📁 pages/
-│   │       │   └── 📄 UsuariosPage.tsx
-│   │       └── 📁 services/
-│   │           └── 📄 usuarios.service.ts
-│   ├── 📁 hooks/
-│   │   ├── 📄 useDarkMode.ts
-│   │   └── 📄 useFetch.ts
-│   ├── 📁 models/
-│   │   ├── 📄 documento.model.ts
-│   │   ├── 📄 empleado.model.ts
-│   │   ├── 📄 nomina.model.ts
-│   │   ├── 📄 reporte.model.ts
-│   │   ├── 📄 tipoDocumento.model.ts
-│   │   └── 📄 usuario.model.ts
-│   ├── 📁 routes/
-│   │   ├── 📄 AppRouter.tsx
-│   │   └── 📄 PrivateRoute.tsx
-│   ├── 📁 services/
-│   │   ├── 📄 auth.service.ts
-│   │   ├── 📄 departamentos.service.ts
-│   │   ├── 📄 documentos.service.ts
-│   │   ├── 📄 empleados.service.ts
-│   │   ├── 📄 formacion.service.ts
-│   │   ├── 📄 nomina.service.ts
-│   │   ├── 📄 puestos.service.ts
-│   │   ├── 📄 reportes.service.ts
-│   │   ├── 📄 tiposDocumento.service.ts
-│   │   └── 📄 usuarios.service.ts
-│   ├── 📁 shared/
-│   │   └── 📄 LoadingSpinner.tsx
-│   ├── 📁 styles/
-│   │   └── 🎨 index.css
-│   ├── 📁 utils/
-│   │   └── 📄 swalConfig.ts
-│   ├── 🎨 App.css
-│   ├── 📄 App.tsx
-│   ├── 📄 main.tsx
-│   └── 📄 vite-env.d.ts
-├── ⚙️ .gitignore
-├── 📝 README.md
-├── 📄 eslint.config.js
-├── 🌐 index.html
-├── ⚙️ package-lock.json
-├── ⚙️ package.json
-├── ⚙️ tsconfig.app.json
-├── ⚙️ tsconfig.json
-├── ⚙️ tsconfig.node.json
-└── 📄 vite.config.ts
-```
----
-## 6. Instalación y Configuración
+
+## Instalación y Configuración
+
+### 1️⃣ Instalación del Backend
 
 ```bash
-cd frontend
+cd api-nomina-rh
 npm install
-npm run dev
 npm run build
 ```
 
-## 7. Autenticación y Roles
-- Admin → acceso total
-- RRHH → gestión de nómina
-- Empleado → lectura
+### 2️⃣ Restauración de la Base de Datos
 
-## 8. Mantenimiento Preventivo
-Ejecutar:
+1. Abrir **SQL Server Management Studio (SSMS)**.
+2. Clic derecho en *Bases de datos → Restaurar base de datos…*
+3. Seleccionar **Dispositivo** y ubicar `C:\bck\dbnomina.bak`.
+4. Asignar nombre **db_nomina** y ejecutar la restauración.
+5. Confirmar mensaje de restauración exitosa.
+
+### 3️⃣ Configuración del Archivo `.env`
+
+```bash
+DB_SERVER=LAPTOP-VOGUL89I\SQLEXPRESS
+DB_NAME=db_nomina
+DB_USER=sa
+DB_PASSWORD=12345
+DB_PORT=1433
+JWT_SECRET=clave_secreta_segura
+CORS_ORIGIN=http://localhost:8081
+```
+
+### 4️⃣ Publicación en IIS (Backend)
+
+1. Instalar **iisnode** (`iisnode-full-v0.2.26-x64.msi`).
+2. Instalar **NSSM (Non-Sucking Service Manager)**.
+3. Crear carpeta `C:\inetpub\api-nomina-rh`.
+4. Copiar los archivos compilados (`/dist`) y `web.config`.
+5. En IIS → Agregar sitio web → Ruta física: `C:\inetpub\api-nomina-rh`, puerto `8080`.
+6. Comprobar que Swagger UI esté disponible en `http://localhost:8080/api-docs`.
+
+**Ejemplo de `web.config` del backend:**
+
+```xml
+<configuration>
+  <system.webServer>
+    <handlers>
+      <add name="iisnode" path="dist/main.js" verb="*" modules="iisnode" />
+    </handlers>
+    <rewrite>
+      <rules>
+        <rule name="API">
+          <match url=".*" />
+          <action type="Rewrite" url="dist/main.js" />
+        </rule>
+      </rules>
+    </rewrite>
+  </system.webServer>
+</configuration>
+```
+
+---
+
+### 5️⃣ Publicación del Frontend en IIS
+
+1. Ejecutar:
+
+```bash
+cd app-rrhh
+npm install
+npm run build
+```
+
+2. Crear carpeta `C:\inetpub\app-rrhh`.
+3. Copiar el contenido de `/dist` dentro de esa carpeta.
+4. Crear sitio web en IIS:
+
+   * Nombre: rrhh.
+   * Ruta física: `C:\inetpub\app-rrhh`.
+   * Puerto: 8081.
+5. Crear `web.config` con el siguiente contenido:
+
+```xml
+<configuration>
+  <system.webServer>
+    <rewrite>
+      <rules>
+        <rule name="ReactRoutes">
+          <match url=".*" />
+          <action type="Rewrite" url="index.html" />
+        </rule>
+      </rules>
+    </rewrite>
+    <staticContent>
+      <mimeMap fileExtension=".js" mimeType="text/javascript" />
+      <mimeMap fileExtension=".json" mimeType="application/json" />
+    </staticContent>
+  </system.webServer>
+</configuration>
+```
+
+---
+
+## Diseño y Módulos del Sistema
+
+### Módulo Empleados
+
+* CRUD completo (crear, listar, editar, desactivar/activar).
+* Validaciones de DPI, correo y teléfono.
+* Solo RRHH/Admin pueden modificar datos.
+
+### Módulo Departamentos y Puestos
+
+* Mantenimiento de catálogos.
+* Reglas de integridad referencial (no borrar si hay empleados asociados).
+
+### Módulo Nómina
+
+* Cálculo de devengado, descuentos y neto.
+* Exportación a PDF y CSV.
+* Cierre y reapertura de periodos.
+
+### Módulo Reportes
+
+* Reportes por empleado, periodo y departamento.
+* Filtros y exportaciones personalizadas.
+
+### Módulo Usuarios
+
+* Autenticación JWT.
+* CRUD de usuarios (solo Admin).
+* Asignación de roles: **Administrador**, **RRHH**, **Empleado**.
+
+---
+
+## Diagrama Entidad-Relación
+
+```text
+[Empleados]───┬───< pertenece a >───[Departamentos]
+              │
+              ├───< ocupa >──────────[Puestos]
+              │
+              └───< tiene >──────────[Formación]
+
+[Nominas]───< contiene >───[DetallesNomina]
+[Usuarios]───< registra >───[Bitacora]
+```
+
+📊 ![Diagrama Entidad-Relación](../public/image/ERD.png)
+
+---
+
+## Endpoints Disponibles
+
+* `/api/auth/login` → Autenticación JWT.
+* `/api/empleados` → CRUD de empleados.
+* `/api/departamentos` → Mantenimiento de departamentos.
+* `/api/puestos` → Mantenimiento de puestos.
+* `/api/nominas` → Gestión y cálculo de nómina.
+* `/api/reportes` → Generación de reportes PDF/CSV.
+* `/api/usuarios` → Gestión de usuarios y roles.
+
+---
+
+## Autenticación y Autorización (JWT + Roles)
+
+El sistema utiliza **JSON Web Tokens (JWT)** para autenticar usuarios.
+
+**Roles definidos:**
+
+* **Administrador:** Acceso total al sistema.
+* **RRHH:** Gestión de empleados, nóminas y reportes.
+* **Empleado:** Lectura de su perfil y comprobantes.
+
+El backend implementa middlewares de verificación de token y rol; el frontend protege rutas con guards (`PrivateRoute`).
+
+---
+
+## Gestión de Sesiones
+
+* **Almacenamiento:** LocalStorage seguro.
+* **Expiración:** tokens con tiempo definido (`exp`).
+* **Cierre de sesión:** eliminación del token y redirección al login.
+
+---
+
+## Mantenimiento Preventivo
+
+### Actualizaciones
+
 ```bash
 npm update
 npm audit fix
 ```
 
-## 👨‍💻 Autor
-**Pablo Raúl Arreola Contreras y Marvin Alexander**  
-Universidad Mariano Gálvez de Guatemala  
-Proyecto: *Sistema de Nómina RH — 2025*
+* Ejecutar mensualmente en backend y frontend.
+* Verificar vulnerabilidades.
+
+### Limpieza del entorno
+
+```bash
+rmdir /s /q node_modules
+del /f /q package-lock.json
+npm cache clean --force
+```
+
+### Verificación de base de datos
+
+* Ejecutar `DBCC CHECKDB` desde SSMS.
+* Respaldar semanalmente la base `db_nomina`.
+
+### Seguridad
+
+* Revisar expiración de certificados SSL.
+* Rotar contraseñas administrativas.
+* Revisar orígenes CORS permitidos.
+
+---
+
+## Diagrama de Casos de Uso
+
+```text
+                +-----------------------------+
+                |        Sistema RRHH         |
+                +-----------------------------+
+                   ^          ^           ^
+                   |          |           |
+           [Empleado]   [RRHH]     [Administrador]
+
+Empleado → Consulta de perfil y comprobante.
+RRHH → Gestiona empleados, nóminas, reportes.
+Administrador → Gestiona usuarios y configuraciones.
+```
+
+![Diagrama Entidad-Relación](../public/image/CasosUso.png)
+
+---
+
+## Autor
+
+👨‍💻 **Pablo Raúl Arreola Contreras y Marvin Alexander**
+Universidad Mariano Gálvez de Guatemala
+Proyecto: *Sistema de Nómina y Gestión de Recursos Humanos (2025)*
