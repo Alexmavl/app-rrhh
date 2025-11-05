@@ -116,10 +116,13 @@ npm run build
 
 1. Abrir **SQL Server Management Studio (SSMS)**.
 2. Clic derecho en *Bases de datos → Restaurar base de datos…*
+![](../public/image/C2.jpg)
 3. Seleccionar **Dispositivo** y ubicar `C:\bck\dbnomina.bak`.
+![](../public/image/C3.jpg)
 4. Asignar nombre **db_nomina** y ejecutar la restauración.
+![](../public/image/C4.jpg)
 5. Confirmar mensaje de restauración exitosa.
-
+![DB](../public/image/C7.jpg)
 ### 3️⃣ Configuración del Archivo `.env`
 
 ```bash
@@ -136,10 +139,15 @@ CORS_ORIGIN=http://localhost:8081
 
 1. Instalar **iisnode** (`iisnode-full-v0.2.26-x64.msi`).
 2. Instalar **NSSM (Non-Sucking Service Manager)**.
+![](../public/image/C10.jpg)
 3. Crear carpeta `C:\inetpub\api-nomina-rh`.
+![](../public/image/C11.jpg)
 4. Copiar los archivos compilados (`/dist`) y `web.config`.
+![](../public/image/C12.jpg)
 5. En IIS → Agregar sitio web → Ruta física: `C:\inetpub\api-nomina-rh`, puerto `8080`.
+![](../public/image/C18.jpg)
 6. Comprobar que Swagger UI esté disponible en `http://localhost:8080/api-docs`.
+![](../public/image/C23.jpg)
 
 **Ejemplo de `web.config` del backend:**
 
@@ -172,16 +180,19 @@ cd app-rrhh
 npm install
 npm run build
 ```
-
+![](../public/image/C24.jpg)
 2. Crear carpeta `C:\inetpub\app-rrhh`.
+![](../public/image/C25.jpg)
 3. Copiar el contenido de `/dist` dentro de esa carpeta.
+![](../public/image/C26.jpg)
 4. Crear sitio web en IIS:
 
    * Nombre: rrhh.
    * Ruta física: `C:\inetpub\app-rrhh`.
    * Puerto: 8081.
+   ![](../public/image/C29.jpg)
 5. Crear `web.config` con el siguiente contenido:
-
+![](../public/image/C30.jpg)
 ```xml
 <configuration>
   <system.webServer>
